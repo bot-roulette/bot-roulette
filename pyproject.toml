@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bot-roulette"
+dynamic = ["version"]
+description = "Simulated people you can text with: persona creation, chat engine and consistency judge."
+readme = "README.md"
+license = "AGPL-3.0-only"  # or a commercial license: see README
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+dependencies = [
+    "openai>=1.106",  # callable api_key, used by LLM.openrouter
+    "httpx",
+    "pydantic>=2",
+    "pyyaml",
+    "loguru",
+    "pypdfium2>=4",  # renders a CV's pages, for the model to read
+    "pillow",     # encodes those pages as images
+]
+
+[tool.setuptools.dynamic]
+version = { attr = "bot_roulette.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+bot_roulette = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "cli/tests", "webapp/tests"]
+pythonpath = ["src", "cli", "webapp"]
+addopts = "--import-mode=importlib"

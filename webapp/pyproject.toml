@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bot-roulette-web"
+version = "0.1.0"
+description = "Web app for bot-roulette: persona picker, chats, spectator mode, persona creation, settings panel."
+license = "AGPL-3.0-only"  # or a commercial license: see the repository's README
+requires-python = ">=3.10"
+dependencies = [
+    "bot-roulette~=0.1.0",
+    "fastapi",
+    "uvicorn[standard]",
+    "python-multipart",
+    "python-dotenv",
+    "loguru",
+    "pydantic>=2",
+]
+
+[project.scripts]
+bot-roulette-web = "bot_roulette_web.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["bot_roulette_web*"]
+
+[tool.setuptools.package-data]
+bot_roulette_web = ["static/*"]

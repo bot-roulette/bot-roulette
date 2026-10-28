@@ -1,0 +1,20 @@
+name: Michael
+full_name: Michael Smith
+core: michael.md
+parent: michael
+seed_traits:
+  sex: male
+  age_band: 35-44
+  country: USA
+  first_name: Michael
+  surname: Smith
+  education: university degree
+  work_area: creative work (art, music, writing, design)
+  settlement: rural village
+  living_situation: lives with partner and children
+  mobility: lived abroad briefly and came back
+  employment_stability: precarious (short contracts, gigs, seasonal)
+  life_event: a long relationship that ended
+  chat_language: English
+voice_calibrated: true
+chat_ready: true

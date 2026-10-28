@@ -1,0 +1,6 @@
+# Development setup: the library and both apps, editable, plus pytest for
+# the tests (pip install -r requirements.txt).
+-e .
+-e ./cli
+-e ./webapp
+pytest

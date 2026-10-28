@@ -1,0 +1,318 @@
+[
+  {
+    "role": "interviewer",
+    "content": "Hello, I’m a researcher who conducts in-depth interviews about people’s lives. There are no right or wrong answers, and you’re welcome to skip anything you’d rather not discuss. I’d love to start by hearing about your life — could you tell me the story of your life, starting from wherever you’d like?"
+  },
+  {
+    "role": "respondent",
+    "content": "ha, that's kind of a huge question. where do i even start"
+  },
+  {
+    "role": "interviewer",
+    "content": "That's fair — it is a big question. You could start wherever feels easiest: where you grew up, your family, a memory that sticks with you, or just what today has been like. Where would you like to begin?"
+  },
+  {
+    "role": "respondent",
+    "content": "family's easiest i guess. mom and dad are still in wichita, and my brother's out there too. we're not like a huge close family, nobody calls every day, but it's fine. normal i guess"
+  },
+  {
+    "role": "interviewer",
+    "content": "Got it — Wichita, and a family that stays in touch without being in each other's pockets. What was it like growing up in that household?"
+  },
+  {
+    "role": "respondent",
+    "content": "it was just... regular. dad worked, mom worked too, we got by. money was kinda tight but nobody ever went hungry or anything"
+  },
+  {
+    "role": "interviewer",
+    "content": "\"Kinda tight\" — what did that look like day to day? Was there something you remember noticing as a kid, like how bills got handled or what you did without?"
+  },
+  {
+    "role": "respondent",
+    "content": "off-brand everything, basically ahah. like the store brand cereal in the bag instead of the box. mom would have a number in her head in the store and if we went over it something had to go back"
+  },
+  {
+    "role": "interviewer",
+    "content": "That's a vivid picture — the number in her head, something going back on the shelf. How did you feel about that as a kid, having to put things back?"
+  },
+  {
+    "role": "respondent",
+    "content": "honestly i don't know if i had a word for it then. it was just normal, it was how it was for everybody i knew basically"
+  },
+  {
+    "role": "interviewer",
+    "content": "That makes sense — if everyone around you was in the same boat, it wouldn't feel like a big deal. So how did you end up leaving Wichita?"
+  },
+  {
+    "role": "respondent",
+    "content": "there wasn't like a plan honestly. i just kind of got tired of it. wichita felt like this small box, everybody knew everybody, and i was working some job that wasn't going anywhere"
+  },
+  {
+    "role": "interviewer",
+    "content": "Sounds like the job and the town were both feeling like a small box. What was that job you were working before you left?"
+  },
+  {
+    "role": "respondent",
+    "content": "it was this fast food place, like a burger thing off the main road. i was there probably two years? started right after i dropped out, i think"
+  },
+  {
+    "role": "interviewer",
+    "content": "You mentioned dropping out — tell me about that. What led to leaving school?"
+  },
+  {
+    "role": "respondent",
+    "content": "honestly there's no big reason. i wasn't failing or in trouble or anything. i just... stopped caring? started missing days, and then it got weird to go back cause everybody notices you were gone"
+  },
+  {
+    "role": "interviewer",
+    "content": "That \"weird to go back\" feeling — was there someone at school you could have talked to about it, a teacher or counselor, or did it feel like that wasn't really an option?"
+  },
+  {
+    "role": "respondent",
+    "content": "not really. i barely knew who the counselor even was. school wasn't that kind of place for me honestly"
+  },
+  {
+    "role": "interviewer",
+    "content": "So you left Wichita — where did you go, and how did that happen?"
+  },
+  {
+    "role": "respondent",
+    "content": "cicero, illinois. it's like right outside chicago, basically attached to it"
+  },
+  {
+    "role": "interviewer",
+    "content": "Cicero — right on the edge of Chicago. How did you land there specifically? Did you know someone there?"
+  },
+  {
+    "role": "respondent",
+    "content": "yeah, my friend from high school, the one who kept telling me to come. it wasn't like i picked cicero on purpose, it's just where she was living"
+  },
+  {
+    "role": "interviewer",
+    "content": "Tell me about her — how did that invitation come about, and what was it like showing up in Cicero?"
+  },
+  {
+    "role": "respondent",
+    "content": "her name's maria. honestly we weren't even that close in school, like a couple classes together. but after she moved she kept messaging me, sending pics and stuff, being like \"just come, you can crash at my place.\" i don't think she actually thought i'd do it"
+  },
+  {
+    "role": "interviewer",
+    "content": "She kept nudging and didn't expect you to actually show up — so what was it like when you did? What happened when you got to her place?"
+  },
+  {
+    "role": "respondent",
+    "content": "she met me at the bus stop, which was nice, i was expecting to have to figure out the buses myself. she was way more excited than i was honestly ahah"
+  },
+  {
+    "role": "interviewer",
+    "content": "She was more excited than you were — that's telling. What did those first weeks in Cicero look like for you?"
+  },
+  {
+    "role": "respondent",
+    "content": "a lot of applications honestly. i didn't have much saved so it was like, ok i need money fast. the grocery job came pretty quick i think, like within a few weeks"
+  },
+  {
+    "role": "interviewer",
+    "content": "The grocery job came through within a few weeks — what was that job like, and is that still what you're doing now?"
+  },
+  {
+    "role": "respondent",
+    "content": "it was alright. discount grocery, so mostly cashier stuff, ringing people up, stocking shelves when it was slow. the pay was bad but i got good at it pretty fast"
+  },
+  {
+    "role": "interviewer",
+    "content": "Do you still work there now, or did something else come along since then?"
+  },
+  {
+    "role": "respondent",
+    "content": "no, i just said — the dollar store ended a few months back. i'm not working right now"
+  },
+  {
+    "role": "interviewer",
+    "content": "Ah, sorry — I misread that. So the dollar store job ended a few months back. How did that come to an end?"
+  },
+  {
+    "role": "respondent",
+    "content": "hours just kept getting cut honestly. the store was slow, and then they let a bunch of us go at once. so it wasn't like i did something wrong"
+  },
+  {
+    "role": "interviewer",
+    "content": "That sounds like it was out of your hands — the store just slowed down. So what's it been like the last few months, making ends meet without that paycheck?"
+  },
+  {
+    "role": "respondent",
+    "content": "stressful ahah. rent doesn't care that you got let go. i live with two roommates so that keeps it from being a disaster, but it's tight. i've done some plasma donation, sold a couple things, little stuff like that"
+  },
+  {
+    "role": "interviewer",
+    "content": "Plasma donation and selling things — that's a real hustle to keep rent paid. Walk me through what a plasma donation is like for you, how often you go and what it pays."
+  },
+  {
+    "role": "respondent",
+    "content": "it's like an hour sitting with a needle in your arm, basically. first time they screen you and take forever, after that it's faster. the place is a whole room full of people looking tired, honestly kind of depressing ahah"
+  },
+  {
+    "role": "interviewer",
+    "content": "A room full of tired people — that's a stark image. What does a session actually pay you?"
+  },
+  {
+    "role": "respondent",
+    "content": "honestly i don't remember exactly, it changes depending on the week and the place. like the first one in a week pays more than the second one"
+  },
+  {
+    "role": "interviewer",
+    "content": "Fair enough — it varies. Let's talk about where you're living. You mentioned two roommates — how did the three of you end up in that place together?"
+  },
+  {
+    "role": "respondent",
+    "content": "it's a two bedroom, so three people in two bedrooms, it's a little crowded but it's cheap. honestly it just came together cause none of us could afford a place alone"
+  },
+  {
+    "role": "interviewer",
+    "content": "Three people in two bedrooms — how did you actually find each other? Were the roommates already friends of yours, or Maria's, or strangers?"
+  },
+  {
+    "role": "respondent",
+    "content": "not strangers exactly. dana i knew from a job, and josh is her friend, so that's how he came in. we knew each other enough to risk signing a lease together"
+  },
+  {
+    "role": "interviewer",
+    "content": "\"Enough to risk signing a lease\" — that's a real leap of faith. What's a typical day like for you these days, now that you're out of work — from when you wake up to when you go to bed?"
+  },
+  {
+    "role": "respondent",
+    "content": "typical day is kind of boring right now, not gonna lie. i wake up, coffee, and get on the job listings on my laptop. that's like the morning ritual. then i play this dumb puzzle game on my phone way longer than i should"
+  },
+  {
+    "role": "interviewer",
+    "content": "The puzzle game as a way to avoid the listings — I get that. What does the rest of the day look like after that, afternoon into evening?"
+  },
+  {
+    "role": "respondent",
+    "content": "afternoon's the long stretch honestly. walk around the block, run whatever errand, plasma if i'm going. sometimes i just sit with the laptop half-watching something"
+  },
+  {
+    "role": "interviewer",
+    "content": "Do you and the roommates spend much time together, or does everyone mostly keep to themselves?"
+  },
+  {
+    "role": "respondent",
+    "content": "kind of in between. we're not like a big sit around and talk household. dana works a lot, josh is always on his games, we just cross paths in the kitchen mostly"
+  },
+  {
+    "role": "interviewer",
+    "content": "Crossing paths in the kitchen — that's a familiar kind of household. Who would you say you actually lean on these days, when something's weighing on you?"
+  },
+  {
+    "role": "respondent",
+    "content": "honestly... i don't know if i have a good answer for that. i'm not really the type to like, call somebody up and dump stuff on them"
+  },
+  {
+    "role": "interviewer",
+    "content": "That's honest — not everyone's a phone-call-and-vent person. So when something's weighing on you, what do you do with it instead?"
+  },
+  {
+    "role": "respondent",
+    "content": "i walk a lot. like just around the neighborhood, no real destination. somehow it helps more than talking would, at least for me"
+  },
+  {
+    "role": "interviewer",
+    "content": "Walking it out instead of talking it out — I like that. Where do you tend to walk, and what's the neighborhood like around you?"
+  },
+  {
+    "role": "respondent",
+    "content": "i've got like a loop i do. past the corner store, down by the park, and back around. cicero's not pretty exactly, it's kind of scrappy looking, but i know every block now"
+  },
+  {
+    "role": "interviewer",
+    "content": "Knowing every block of a place — that's its own kind of belonging. You mentioned the walking helps you — how are you doing these days, health-wise, both physically and in your head?"
+  },
+  {
+    "role": "respondent",
+    "content": "physically fine i think. like the plasma place screens you so if something was really off i'd probably know ahah"
+  },
+  {
+    "role": "interviewer",
+    "content": "That's a fair point — they'd catch it. What about the head side of things, the stress of the last few months — how's that been sitting with you?"
+  },
+  {
+    "role": "respondent",
+    "content": "i kind of just said it honestly. it sits there like... a low hum. like you're not panicking but you're never fully relaxed either. it's always in the back of your head"
+  },
+  {
+    "role": "interviewer",
+    "content": "A low hum, never fully relaxed — that's a clear way to put it. You've touched on money and work already; let me ask about beliefs for a moment — what matters to you, things you'd say you value or hold onto?"
+  },
+  {
+    "role": "respondent",
+    "content": "i don't know, i'm not really a big beliefs person. i don't have like a list in my head ahah"
+  },
+  {
+    "role": "interviewer",
+    "content": "Fair enough — not everyone has a list. Let me put it differently: is there something you care about that would bother you to compromise on? Like a line you wouldn't cross."
+  },
+  {
+    "role": "respondent",
+    "content": "i guess money stuff. like i've been broke enough that it's not hypothetical, and i still haven't cheated or stole or screwed anybody over for it. i'm not gonna be that person just cause things are hard"
+  },
+  {
+    "role": "interviewer",
+    "content": "That's a strong line to hold, especially when it's not hypothetical. Let me ask about the people side of your life — is there a partner or anyone you're close to in that way, or has it mostly been friends and roommates lately?"
+  },
+  {
+    "role": "respondent",
+    "content": "no, not right now. there was somebody for like three years and that ended last year. and since then it's just been me, the roommates, that's about it"
+  },
+  {
+    "role": "interviewer",
+    "content": "Three years is a real chunk of your life — what was that relationship like, and how did it end?"
+  },
+  {
+    "role": "respondent",
+    "content": "it was good for a while, like actually good. he was the first person up here who wasn't a roommate or a coworker, you know? felt like a real life for a bit there"
+  },
+  {
+    "role": "interviewer",
+    "content": "\"Felt like a real life for a bit there\" — that's a warm way to describe it. What happened that it ended?"
+  },
+  {
+    "role": "respondent",
+    "content": "i kind of just said it — he ended it. said it felt like we were roommates who kissed"
+  },
+  {
+    "role": "interviewer",
+    "content": "\"Roommates who kissed\" — that's a blunt thing to hear. What was that like for you, hearing it put that way?"
+  },
+  {
+    "role": "respondent",
+    "content": "it stung. mostly cause i couldn't even argue with it. like you can get mad when somebody's wrong about you, but when they're right it just kind of sits there"
+  },
+  {
+    "role": "interviewer",
+    "content": "That's a hard kind of right — the kind you can't argue with. I have just a couple of questions left, so let me jump ahead: when you picture the next five years, what do you hope is different?"
+  },
+  {
+    "role": "respondent",
+    "content": "god, i don't even know what next month looks like ahah"
+  },
+  {
+    "role": "interviewer",
+    "content": "That's fair — when next month is uncertain, five years feels like a stretch. If you could say one thing to the version of yourself who first got off that bus in Cicero, what would it be?"
+  },
+  {
+    "role": "respondent",
+    "content": "i think i'd tell her it's gonna be harder than she thinks, but she's not dumb for getting off that bus. she was scared it was a mistake and it wasn't"
+  },
+  {
+    "role": "interviewer",
+    "content": "That's a kind thing to tell her — that getting off the bus wasn't a mistake. We're nearly at the end now: is there anything important about your life that I haven't asked about, that you'd want someone to know?"
+  },
+  {
+    "role": "respondent",
+    "content": "i don't know. maybe just that i'm not just like... the jobs i lost, you know? like it's easy to hear \"between jobs, plasma, roommates\" and picture somebody giving up. but i'm still checking those listings every morning. that's something, i think"
+  },
+  {
+    "role": "interviewer",
+    "content": "That's more than something — checking those listings every morning, still holding your line about not screwing anyone over, that's a person who hasn't given up. I want to thank you for talking with me so openly today, especially about the harder parts. I really appreciate it, and I hope the next few months treat you a little more kindly."
+  }
+]

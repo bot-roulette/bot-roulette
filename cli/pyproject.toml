@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bot-roulette-cli"
+version = "0.1.0"
+description = "Command line for bot-roulette: chat with personas, create them, build and evaluate datasets."
+license = "AGPL-3.0-only"  # or a commercial license: see the repository's README
+requires-python = ">=3.10"
+dependencies = [
+    "bot-roulette~=0.1.0",
+    "python-dotenv",
+    "loguru",
+    "pydantic>=2",
+]
+
+[project.scripts]
+bot-roulette = "bot_roulette_cli.main:main"
+
+[tool.setuptools.packages.find]
+include = ["bot_roulette_cli*"]

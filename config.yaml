@@ -1,0 +1,136 @@
+# How the apps behave. Edit freely: the web app checks this file when it
+# starts, and the command-line tool before each command that uses it (cv,
+# random, enrich); both refuse to run if a key is unknown (a typo),
+# missing, or has a wrong value — the message names it.
+# The web: section is read by the web app only; creation: and
+# random_personas: by both (they are the library's settings).
+#
+# Not here: the model, where it runs (OpenRouter, or your own
+# OpenAI-compatible server: LLM_BASE_URL) and its key, the optional
+# access code and the on/off switches (GENERATION_ALLOWED,
+# CANCELLATION_ALLOWED, CHAT_MEMORY_ALLOWED).
+# Those live in .env (the model, where it runs and the key can also be
+# changed from the web app's ⚙ settings panel, which writes them there).
+
+web:
+  # Consistency judge on every reply in the web app (chats and spectator
+  # mode): it catches assistant-like answers, identity slips and
+  # contradictions, at the cost of one extra model call per reply.
+  judge: true
+
+  # A chat ends — and stays read-only — after this many of your messages.
+  # Regenerating a reply doesn't count.
+  messages_per_session: 60
+
+  # Longest message you can send (or turn a reply into with "edit"):
+  # anything longer is cut to this many characters before the persona
+  # sees it. Every message is re-sent to the model on each later turn, so
+  # one huge paste would make every request bigger, or overflow the
+  # model's context and end the chat with an error. 4000 ≈ 1000 tokens.
+  message_chars: 4000
+
+  # A spectator show ends after this many replies.
+  spectate_turns: 40
+
+  # Largest CV PDF accepted for import, in MB.
+  cv_max_mb: 10
+
+creation:
+  # Questions in the life interview of a new persona.
+  # (`bot-roulette cv` and `bot-roulette random` also accept --max-turns.)
+  interview_questions: 40
+
+  # Voice calibration: a new persona texts this many existing personas,
+  # for up to voice_turns replies each. Chats shorter than
+  # voice_min_turns replies are not used.
+  voice_partners: 2
+  voice_turns: 12
+  voice_min_turns: 4
+
+random_personas:
+  # The background of a random person: one value from each list, picked
+  # at random unless fixed in the web app's generation dialog (with one
+  # of these values, or in your own words). Who the person is — first
+  # name, surname, sex, country and, optionally, a language they must be
+  # able to chat in — isn't drawn: it's always given when generating (in
+  # that dialog, or to `bot-roulette random`).
+  # Keep the order of a list if you want `bot-roulette random --seed N`
+  # to keep producing the same background.
+  age_bands:            # "from-to"
+    - "18-24"
+    - "25-34"
+    - "35-44"
+    - "45-54"
+    - "55-64"
+    - "65-75"
+
+  education:
+    - left school early
+    - high school
+    - vocational training
+    - some university, unfinished
+    - university degree
+    - postgraduate degree
+
+  # Three of these get special handling, so keep their wording:
+  # "unemployed or between jobs" and "retired" get no employment
+  # stability, "student with side jobs" always a precarious one, and
+  # "retired" is only kept with an age band starting at 55 or later.
+  work_areas:
+    - food service or hospitality
+    - retail
+    - construction or skilled trades
+    - transport or logistics
+    - healthcare
+    - education
+    - office administration
+    - agriculture or fishing
+    - manufacturing
+    - cleaning or maintenance
+    - public sector
+    - small business owner
+    - creative work (art, music, writing, design)
+    - tech
+    - personal care (hairdresser, caregiver...)
+    - unemployed or between jobs
+    - student with side jobs
+    - retired
+
+  settlements:
+    - big city
+    - suburb or commuter town of a big city
+    - mid-size provincial city
+    - small town
+    - rural village
+
+  living_situations:
+    - lives with parents
+    - lives alone
+    - lives with a partner
+    - lives with partner and children
+    - single parent with children
+    - shares a flat with roommates
+    - lives with a relative (grandparent, sibling, aunt/uncle)
+
+  mobility:
+    - never left the hometown
+    - moved once within the country for work or study
+    - moved several times within the country
+    - lived abroad briefly and came back
+    - moved from another region and settled
+
+  employment_stability:
+    - stable permanent position
+    - precarious (short contracts, gigs, seasonal)
+    - recently changed jobs
+    - same employer for many years
+    - informal or partly undeclared work
+
+  life_events:
+    - nothing unusual — a plain, linear life so far
+    - a long relationship that ended
+    - cared for a sick or aging relative for a period
+    - an abandoned plan (a business, a degree, a move) that didn't happen
+    - a period of unemployment that left a mark
+    - a close friendship or family tie that faded away
+    - a health issue, now managed, that changed some habits

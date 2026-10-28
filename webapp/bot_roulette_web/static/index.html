@@ -1,0 +1,1623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>persona chat</title>
+<style>
+  :root { --bg:#0f1115; --panel:#1a1d24; --me:#2f6fed; --them:#262b35; --text:#e8eaf0; --dim:#8a90a0; }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--bg); color: var(--text); font: 15px/1.4 system-ui, sans-serif;
+         display: flex; flex-direction: column; height: 100dvh; }
+  header { padding: 12px 16px; background: var(--panel); display: flex;
+           justify-content: space-between; align-items: center; }
+  header .status { color: var(--dim); font-size: 13px; }
+  button { background: var(--me); border: 0; color: #fff; padding: 8px 14px;
+           border-radius: 8px; font-size: 14px; cursor: pointer; }
+  button:disabled { opacity: .4; cursor: default; }
+  #chat { flex: 1; overflow-y: auto; padding: 16px; display: flex;
+          flex-direction: column; gap: 6px; }
+  .bubble { max-width: 75%; padding: 8px 12px; border-radius: 14px;
+            white-space: pre-wrap; word-wrap: break-word; }
+  .me    { background: var(--me);   align-self: flex-end;  border-bottom-right-radius: 4px; }
+  .them  { background: var(--them); align-self: flex-start; border-bottom-left-radius: 4px; }
+  .pb    { background: #3a2f52; align-self: flex-end; border-bottom-right-radius: 4px; }
+  .sys   { color: var(--dim); align-self: center; font-size: 13px; padding: 4px; }
+  .speaker { font-size: 11px; color: var(--dim); margin-top: 6px; }
+  .speaker.a { align-self: flex-start; padding-left: 6px; }
+  .speaker.b { align-self: flex-end; padding-right: 6px; }
+  .inner { align-self: flex-start; max-width: 75%; font-size: 12px; color: var(--dim);
+           border-left: 2px solid #4a5164; padding: 2px 10px; font-style: italic; }
+  .inner.b { align-self: flex-end; border-left: 0; border-right: 2px solid #5a4a7a;
+             text-align: right; }
+  .inner .st { color: #b8a04a; }
+  /* inline editing (spectator mode): the real bubbles/monologue become
+     directly editable in place */
+  .editing { outline: 1px dashed #6a8adf; outline-offset: 2px; cursor: text; }
+  .editing:focus { outline-style: solid; background: #1e2436; }
+  .continue-bar { align-self: center; display: flex; gap: 8px; align-items: center;
+                  margin: 4px 0; }
+  .continue-bar button { padding: 5px 14px; font-size: 13px; }
+  .continue-bar .hint { font-size: 11px; color: var(--dim); }
+  /* 1:1 chat: "✎ edit" / "↻ regenerate" row under the persona's last reply */
+  .turn-actions { align-self: flex-start; display: flex; gap: 8px; align-items: center;
+                  margin: 2px 0 4px; }
+  .turn-actions button { background: transparent; color: var(--dim); border: 1px solid #333a48;
+                         padding: 2px 10px; font-size: 12px; border-radius: 6px; }
+  .turn-actions button:hover { color: var(--text); }
+  .turn-actions .hint { font-size: 11px; color: var(--dim); }
+  #typing { color: var(--dim); font-size: 13px; padding: 0 16px 4px; height: 20px; }
+  form { display: flex; gap: 8px; padding: 12px 16px; background: var(--panel); }
+  input { flex: 1; background: var(--bg); border: 1px solid #333a48; color: var(--text);
+          padding: 10px 12px; border-radius: 8px; font-size: 15px; outline: none; }
+  header .actions { display: flex; gap: 8px; }
+  #who, #change { background: var(--them); }
+  #core-panel { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none;
+                align-items: stretch; justify-content: flex-end; z-index: 10; }
+  #core-panel.open { display: flex; }
+  #core-inner { background: var(--panel); width: min(560px, 100%); height: 100%;
+                overflow-y: auto; padding: 20px 24px; }
+  #core-inner h1 { font-size: 18px; margin-bottom: 12px; display: flex;
+                   justify-content: space-between; align-items: center; }
+  #core-text, #scenario-text { white-space: pre-wrap; font-size: 13px; color: var(--dim);
+               line-height: 1.5; }
+  #core-inner h2 { font-size: 14px; margin: 18px 0 8px; color: var(--text); }
+  #core-close, #picker-close, #settings-open, #settings-close { background: var(--them); padding: 4px 10px; font-size: 13px; }
+
+  /* persona picker: full-screen */
+  #picker { position: fixed; inset: 0; background: var(--bg); z-index: 20;
+            display: none; flex-direction: column; }
+  #picker.open { display: flex; }
+  #picker header { flex: none; }
+  #picker-body { flex: 1; overflow: hidden; display: flex; min-height: 0; }
+  #persona-list { width: min(340px, 45%); overflow-y: auto; padding: 12px;
+                  display: flex; flex-direction: column; gap: 8px;
+                  border-right: 1px solid #262b35; }
+  #spectate-banner { display: none; background: #1e2436; border: 1px solid #6a8adf;
+                     border-radius: 10px; padding: 10px 14px; margin-bottom: 4px;
+                     font-size: 13px; }
+  #spectate-banner.open { display: block; }
+  #spectate-banner .sb-label { color: var(--text); }
+  #spectate-banner .sb-name { color: #6a8adf; font-weight: 600; }
+  #spectate-banner .sb-hint { color: var(--dim); margin-top: 4px; }
+  #spectate-cancel { margin-top: 8px; background: transparent; color: var(--dim);
+                     border: 1px solid #333a48; padding: 4px 10px; font-size: 12px; }
+  .persona-card { background: var(--panel); border: 1px solid transparent;
+                  border-radius: 10px; padding: 12px 14px; cursor: pointer; text-align: left;
+                  color: var(--text); font: inherit; }
+  .persona-card:hover { border-color: #333a48; }
+  .persona-card.selected { border-color: var(--me); }
+  .persona-card.locked-a { border-color: #6a8adf; background: #1e2436; }
+  .persona-card.locked-a .pname::after { content: "  ◆ A"; color: #6a8adf; font-weight: 400; font-size: 11px; }
+  .persona-card .pname { font-weight: 600; }
+  .persona-card.pending { opacity: .7; }
+  .persona-card.pending .pname::after { content: "  · waiting on voice"; color: var(--dim); font-weight: 400; font-size: 11px; }
+  .persona-card .psnippet { color: var(--dim); font-size: 12px; margin-top: 4px;
+                            display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2;
+                            -webkit-box-orient: vertical; overflow: hidden; }
+  #persona-preview { flex: 1; overflow-y: auto; padding: 20px 24px; min-width: 0; }
+  #preview-placeholder { color: var(--dim); font-size: 14px; margin-top: 40px; text-align: center; }
+  #preview-name { font-size: 20px; margin-bottom: 4px; }
+  #preview-actions { margin: 14px 0 18px; display: flex; gap: 8px; align-items: center; }
+  #delete-persona { margin-left: auto; background: transparent; color: #e07070;
+                    border: 1px solid #5a3030; }
+  #delete-persona:hover { background: #3a1818; }
+  #delete-persona:disabled { opacity: .4; cursor: default; }
+  #preview-core { white-space: pre-wrap; font-size: 13px; color: var(--dim); line-height: 1.5; }
+  #picker-tools { flex: none; display: flex; gap: 8px; padding: 12px 16px;
+                  background: var(--panel); align-items: center; flex-wrap: wrap; }
+  #picker-tools .spacer { flex: 1; }
+  #picker-tools .tool { background: var(--them); }
+  #job-status { color: var(--dim); font-size: 13px; }
+  #job-status.err { color: #e07070; }
+  #job-log-toggle { display: none; }
+  #job-log-toggle.visible { display: inline-block; }
+  #job-log { display: none; flex: none; max-height: 30vh; overflow-y: auto;
+             background: #0a0a0a; border-top: 1px solid var(--panel);
+             padding: 10px 16px; font-family: ui-monospace, Consolas, monospace;
+             font-size: 12px; line-height: 1.5; white-space: pre-wrap;
+             color: var(--dim); }
+  #job-log.open { display: block; }
+  #gen-dialog { width: min(680px, calc(100vw - 28px)); max-height: 90dvh; margin: auto;
+                padding: 20px 24px; border: 1px solid #333a48; border-radius: 12px;
+                background: var(--panel); color: var(--text); }
+  #gen-dialog::backdrop { background: rgba(0,0,0,.7); }
+  #gen-form { display: block; padding: 0; background: none; }
+  #gen-form h1 { font-size: 18px; margin-bottom: 8px; display: flex;
+                 justify-content: space-between; align-items: center; }
+  #gen-form h2 { font-size: 12px; margin: 16px 0 8px; color: var(--text);
+                 text-transform: uppercase; letter-spacing: .08em; }
+  #gen-form .gen-note { color: var(--dim); font-size: 13px; margin-bottom: 12px; }
+  .gen-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .gen-grid label { display: flex; flex-direction: column; gap: 4px;
+                    color: var(--dim); font-size: 12px; }
+  .gen-grid select, .gen-grid input:not([type="radio"]) {
+    flex: none; width: 100%; min-width: 0; background: var(--bg); color: var(--text);
+    border: 1px solid #333a48; border-radius: 8px; padding: 9px 10px; font: inherit;
+    font-size: 14px; }
+  .gen-grid select:focus, .gen-grid input:not([type="radio"]):focus { border-color: var(--me); }
+  .gen-grid .gen-wide { grid-column: 1 / -1; }
+  .gen-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .gen-field input[hidden] { display: none; }
+  .gen-optional { font-style: italic; }
+  #gen-sex { border: 0; padding: 0; margin: 0; min-width: 0; color: var(--dim); font-size: 12px; }
+  #gen-sex legend { padding: 0; margin-bottom: 4px; }
+  #gen-sex .gen-choices { display: flex; gap: 18px; align-items: center; min-height: 38px; }
+  #gen-sex label { flex-direction: row; align-items: center; gap: 6px; color: var(--text);
+                   font-size: 14px; cursor: pointer; }
+  #gen-sex input { flex: none; margin: 0; padding: 0; accent-color: var(--me); }
+  #gen-sex input:focus-visible { outline: 2px solid var(--me); outline-offset: 2px; }
+  #gen-name-note { color: #e0b070; font-size: 12px; margin-top: 8px; }
+  #gen-name-note:empty { display: none; }
+  #gen-error { color: #e07070; font-size: 13px; min-height: 18px; margin-top: 10px; }
+  #gen-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+  #gen-close, #gen-cancel { background: var(--them); }
+  @media (max-width: 520px) {
+    .gen-grid { grid-template-columns: 1fr; }
+    #gen-dialog { padding: 16px; }
+  }
+  #chat-list { margin: 14px 0; }
+  #chat-list:empty { display: none; }
+  #chat-list .cl-label { color: var(--dim); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 6px; }
+  .chat-card { display: flex; align-items: center; gap: 10px; width: 100%;
+               text-align: left; background: var(--panel); border: 1px solid var(--panel);
+               color: inherit; padding: 8px 12px; border-radius: 8px; margin-bottom: 6px;
+               cursor: pointer; font: inherit; }
+  .chat-card:hover { border-color: var(--them); }
+  .chat-card .cdate { color: var(--dim); font-size: 12px; white-space: nowrap; }
+  .chat-card .cpreview { flex: 1; overflow: hidden; text-overflow: ellipsis;
+                          white-space: nowrap; color: var(--dim); font-size: 13px; }
+  .chat-card .cended { color: var(--dim); font-size: 12px; font-style: italic; }
+  .chat-card .cdel { background: none; border: none; color: var(--dim); cursor: pointer;
+                      font-size: 14px; padding: 2px 6px; }
+  .chat-card .cdel:hover { color: #e07070; }
+
+  /* ⚙ settings: the model and its API key, over the picker */
+  #settings-panel { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none;
+                    align-items: stretch; justify-content: flex-end; z-index: 30; }
+  #settings-panel.open { display: flex; }
+  #settings-inner { background: var(--panel); width: min(480px, 100%); height: 100%;
+                    overflow-y: auto; padding: 20px 24px; }
+  #settings-inner h1 { font-size: 18px; margin-bottom: 12px; display: flex;
+                       justify-content: space-between; align-items: center; }
+  #settings-current { font-size: 13px; color: var(--dim); line-height: 1.6; }
+  #settings-current b { color: var(--text); font-weight: 600; word-break: break-all; }
+  #settings-current .warn { color: #e0b070; margin-top: 4px; }
+  #settings-form { flex-direction: column; gap: 6px; padding: 0; background: none; }
+  #settings-form label { font-size: 13px; color: var(--dim); margin-top: 12px; }
+  #settings-form input { flex: none; font-size: 14px; }
+  #settings-form button { align-self: flex-start; margin-top: 14px; }
+  #settings-msg { font-size: 13px; color: var(--dim); min-height: 18px; }
+  #settings-msg.err { color: #e07070; }
+  #settings-msg.ok { color: #7fc48a; }
+  .settings-note { font-size: 12px; color: var(--dim); margin-top: 18px; line-height: 1.5; }
+  #settings-where { border: 0; padding: 0; margin: 12px 0 0; min-width: 0; }
+  #settings-where legend { font-size: 13px; color: var(--dim); padding: 0; }
+  #settings-where label { display: flex; align-items: center; gap: 8px; margin-top: 8px;
+                          font-size: 14px; color: var(--text); cursor: pointer; }
+  #settings-where input { flex: none; margin: 0; padding: 0; accent-color: var(--me); }
+  #settings-form [hidden] { display: none; }
+</style>
+</head>
+<body>
+
+<!-- persona picker (start screen) -->
+<div id="picker" class="open">
+  <header>
+    <div class="status">choose who to chat with</div>
+    <div class="actions">
+      <button id="settings-open" title="where the model runs, the model and its API key">⚙ settings</button>
+      <button id="picker-close" style="display:none">back to chat</button>
+    </div>
+  </header>
+  <div id="picker-body">
+    <div id="persona-list">
+      <div id="spectate-banner">
+        <div class="sb-label">◆ Persona A: <span class="sb-name"></span></div>
+        <div class="sb-hint">now pick who they'll chat with →</div>
+        <button id="spectate-cancel">cancel</button>
+      </div>
+    </div>
+    <div id="persona-preview">
+      <div id="preview-placeholder">select a persona to see their description</div>
+      <div id="preview-content" style="display:none">
+        <h1 id="preview-name"></h1>
+        <div id="preview-actions"><button id="start-chat">chat with this person</button><button id="spectate" class="tool">👀 watch two personas chat →</button><button id="delete-persona" title="permanently delete this persona" disabled>🗑 delete</button></div>
+        <div id="chat-list"></div>
+        <div id="preview-core"></div>
+      </div>
+    </div>
+  </div>
+  <div id="picker-tools">
+    <button id="gen-persona" class="tool">✨ generate new persona</button>
+    <button id="import-cv" class="tool">📄 import from CV (pdf)</button>
+    <input type="file" id="cv-file" accept="application/pdf" style="display:none">
+    <span id="job-status"></span>
+    <button id="job-stop" class="tool" style="display:none" title="stop creating this persona">✕ stop</button>
+    <button id="job-log-toggle" class="tool">show progress</button>
+    <span class="spacer"></span>
+    <button id="refresh-list" class="tool">refresh</button>
+  </div>
+  <div id="job-log"></div>
+</div>
+
+<dialog id="gen-dialog" aria-labelledby="gen-title">
+  <form id="gen-form" autocomplete="off">
+    <h1><span id="gen-title">✨ generate a person</span><button id="gen-close" type="button">close</button></h1>
+    <h2>Who they are</h2>
+    <div class="gen-grid">
+      <label>First name
+        <input id="gen-first-name" name="first_name" required maxlength="50" pattern=".*\S.*" spellcheck="false" autofocus>
+      </label>
+      <label>Surname
+        <input id="gen-surname" name="surname" required maxlength="50" pattern=".*\S.*" spellcheck="false">
+      </label>
+      <label>Country
+        <input id="gen-country" name="country" required maxlength="60" pattern=".*\S.*" placeholder="e.g. Italy">
+      </label>
+      <fieldset id="gen-sex">
+        <legend>Sex</legend>
+        <div class="gen-choices">
+          <label><input type="radio" name="sex" value="female" required> female</label>
+          <label><input type="radio" name="sex" value="male"> male</label>
+        </div>
+      </fieldset>
+      <label class="gen-wide"><span>Can chat in <span class="gen-optional">(optional — leave empty for realistic language skills)</span></span>
+        <input id="gen-chat-language" name="chat_language" maxlength="40" placeholder="e.g. Italian">
+      </label>
+    </div>
+    <div id="gen-name-note" role="status"></div>
+    <h2>Background</h2>
+    <p class="gen-note">Every field starts random. Choose a value to fix it for this person only, or “✎ write your own…” to put it in your own words: an exact age, a named town, a precise job.</p>
+    <div id="gen-fields" class="gen-grid"></div>
+    <div id="gen-error" role="alert" aria-live="polite"></div>
+    <div id="gen-actions">
+      <button id="gen-cancel" type="button">cancel</button>
+      <button id="gen-submit" type="submit">generate person</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ⚙ settings: where the model runs, the model and its API key -->
+<div id="settings-panel">
+  <div id="settings-inner">
+    <h1><span>⚙ settings</span><button id="settings-close">close</button></h1>
+    <div id="settings-current"></div>
+    <form id="settings-form" autocomplete="off">
+      <fieldset id="settings-where">
+        <legend>the model runs on</legend>
+        <label><input type="radio" name="where" value="openrouter"> OpenRouter</label>
+        <label><input type="radio" name="where" value="server"> your own server (OpenAI-compatible)</label>
+      </fieldset>
+      <label for="settings-server" id="settings-server-label">server address</label>
+      <input id="settings-server" type="url" pattern="https?://\S+" spellcheck="false" autocapitalize="off" placeholder="e.g. http://localhost:11434/v1 (Ollama) or http://localhost:1234/v1 (LM Studio)">
+      <label for="settings-model" id="settings-model-label">model (OpenRouter id)</label>
+      <input id="settings-model" list="settings-models" spellcheck="false" autocapitalize="off" placeholder="e.g. z-ai/glm-5.2">
+      <datalist id="settings-models"></datalist>
+      <label for="settings-key" id="settings-key-label">OpenRouter API key</label>
+      <input id="settings-key" type="password" autocomplete="new-password" spellcheck="false" placeholder="paste your OpenRouter key (sk-or-…)">
+      <button id="settings-save">save</button>
+      <div id="settings-msg"></div>
+    </form>
+    <p class="settings-note">Changes are checked first, with OpenRouter or your server (no tokens spent), then
+      saved to the server's .env. They apply from the next reply on — in open chats and in a persona being created too.
+      A key is only ever sent to the server it was saved for.</p>
+  </div>
+</div>
+
+<!-- chat screen -->
+<header>
+  <div class="status" id="status">pick a persona to start</div>
+  <div class="actions">
+    <button id="mode-toggle" style="display:none" title="switch between step-by-step (pause and edit each turn) and auto (uninterrupted)">⏸ step-by-step</button>
+    <button id="stop-watch" style="display:none">stop watching</button>
+    <button id="who" disabled>who is this?</button>
+    <button id="change">change persona</button>
+  </div>
+</header>
+<div id="core-panel">
+  <div id="core-inner">
+    <h1><span id="core-name"></span><button id="core-close">close</button></h1>
+    <div id="core-text"></div>
+    <h2>PAIRED scenario</h2>
+    <div id="scenario-text"></div>
+  </div>
+</div>
+<div id="chat"></div>
+<div id="typing"></div>
+<form id="form">
+  <input id="input" autocomplete="off" placeholder="say something…" disabled>
+  <button id="send" disabled>send</button>
+</form>
+<script>
+const chat = document.getElementById("chat");
+const typing = document.getElementById("typing");
+const statusEl = document.getElementById("status");
+const form = document.getElementById("form");
+const input = document.getElementById("input");
+const send = document.getElementById("send");
+const who = document.getElementById("who");
+const change = document.getElementById("change");
+const corePanel = document.getElementById("core-panel");
+const coreName = document.getElementById("core-name");
+const coreText = document.getElementById("core-text");
+const scenarioText = document.getElementById("scenario-text");
+
+const picker = document.getElementById("picker");
+const pickerClose = document.getElementById("picker-close");
+const personaList = document.getElementById("persona-list");
+const spectateBanner = document.getElementById("spectate-banner");
+const spectateBannerName = spectateBanner.querySelector(".sb-name");
+const spectateCancel = document.getElementById("spectate-cancel");
+const previewPlaceholder = document.getElementById("preview-placeholder");
+const previewContent = document.getElementById("preview-content");
+const previewName = document.getElementById("preview-name");
+const previewCore = document.getElementById("preview-core");
+const chatList = document.getElementById("chat-list");
+const startChat = document.getElementById("start-chat");
+const spectateBtn = document.getElementById("spectate");
+const stopWatch = document.getElementById("stop-watch");
+const modeToggle = document.getElementById("mode-toggle");
+const deleteBtn = document.getElementById("delete-persona");
+const genBtn = document.getElementById("gen-persona");
+const genDialog = document.getElementById("gen-dialog");
+const genForm = document.getElementById("gen-form");
+const genFields = document.getElementById("gen-fields");
+const genFirstName = document.getElementById("gen-first-name");
+const genSurname = document.getElementById("gen-surname");
+const genCountry = document.getElementById("gen-country");
+const genChatLanguage = document.getElementById("gen-chat-language");
+const genNameNote = document.getElementById("gen-name-note");
+const genError = document.getElementById("gen-error");
+const genSubmit = document.getElementById("gen-submit");
+const genClose = document.getElementById("gen-close");
+const genCancel = document.getElementById("gen-cancel");
+const importBtn = document.getElementById("import-cv");
+const cvFile = document.getElementById("cv-file");
+const jobStatus = document.getElementById("job-status");
+const jobStop = document.getElementById("job-stop");
+const jobLog = document.getElementById("job-log");
+const jobLogToggle = document.getElementById("job-log-toggle");
+const refreshBtn = document.getElementById("refresh-list");
+const settingsOpen = document.getElementById("settings-open");
+const settingsPanel = document.getElementById("settings-panel");
+const settingsCurrent = document.getElementById("settings-current");
+const settingsForm = document.getElementById("settings-form");
+const settingsModel = document.getElementById("settings-model");
+const settingsModels = document.getElementById("settings-models");
+const settingsKey = document.getElementById("settings-key");
+const settingsSave = document.getElementById("settings-save");
+const settingsMsg = document.getElementById("settings-msg");
+
+let generationOptions = null;
+const generationSelects = new Map();
+const generationCustoms = new Map();   // trait -> its "your own words" field
+// The background: random unless fixed, with a listed value or in your
+// own words. Who the person is (name, sex, country) is typed in the
+// form's first section instead.
+const generationFieldSpecs = [
+  ["age_band", "Age", "age_bands", "e.g. 37, or 40-45"],
+  ["education", "Education", "education", "e.g. nursing school, unfinished"],
+  ["work_area", "Work area", "work_areas", "e.g. night-shift nurse"],
+  ["settlement", "Settlement", "settlements", "e.g. Bergamo, or an island village"],
+  ["living_situation", "Living situation", "living_situations", "e.g. with a sister and two cats"],
+  ["mobility", "Mobility", "mobility", "e.g. Naples, then Milan at 25"],
+  ["employment_stability", "Employment stability", "employment_stability", "e.g. seasonal, winters off"],
+  ["life_event", "Life event", "life_events", "e.g. won a small lottery prize"],
+];
+// The last choice of each list: your own words, typed in the field it
+// reveals. The server checks them too (see random_persona.py).
+const CUSTOM = "__custom__";
+const CUSTOM_MAX_CHARS = 150;
+const CUSTOM_AGE_PATTERN = "\\s*\\d{1,3}\\s*(?:[\\-–]\\s*\\d{1,3}\\s*)?";
+
+let ws = null;
+let personas = [];
+let selectedId = null;
+let chatActive = false;   // a chat session exists behind the picker
+let spectateFirstId = null;  // picking the SECOND persona for spectator mode
+let lastSpeaker = null;      // spectator mode: last "who" that got a name label
+let autoSpectate = false;    // spectator mode: false = step-by-step (pause &
+                             // edit each turn), true = run uninterrupted
+let finishEditing = null;    // finalizer for the currently open edit pause
+let cancelEditing = null;    // teardown (no send) for the open edit pause
+
+// 1:1 chat: the persona's latest reply — the only one that can be
+// edited or regenerated, until the user sends the next message — as
+// rendered ({inner, bubbles}), the server's id for it (quoted back by
+// every edit/regenerate), the "✎ edit · ↻ regenerate" row under it, and
+// the open editor, if any.
+let lastReply = null;
+let lastReplyTurn = 0;
+let replyBar = null;
+let replyEditor = null;      // {save, discard} while "✎ edit" is open
+const pendingEdits = new Map();  // turn -> sent edit awaiting "edited"
+
+// Inline editing, shared by the spectator pause and the chat's "✎ edit":
+// the rendered monologue and bubbles become editable in place.
+function setEditable(els, on) {
+  for (const el of els) {
+    if (on) {
+      try { el.contentEditable = "plaintext-only"; }
+      catch { el.contentEditable = "true"; }
+    } else {
+      el.contentEditable = "false";
+    }
+    el.classList.toggle("editing", on);
+  }
+}
+// contentEditable inserts non-breaking spaces; normalize them so
+// invisible characters don't pollute the personas' prompts.
+const cleanText = (s) => s.replace(/\u00a0/g, " ");
+
+function showReplyActions() {
+  if (replyBar) replyBar.remove();
+  replyBar = null;
+  if (!lastReply || !lastReply.bubbles.length || !lastReplyTurn) return;
+  replyBar = document.createElement("div");
+  replyBar.className = "turn-actions";
+  const btn = document.createElement("button");
+  btn.textContent = "✎ edit";
+  btn.title = "rewrite this reply — the persona will remember your version";
+  btn.onclick = openReplyEditor;
+  const regen = document.createElement("button");
+  regen.textContent = "↻ regenerate";
+  regen.title = "replace this reply with a new one to the same message";
+  regen.onclick = regenerateReply;
+  replyBar.append(btn, regen);
+  lastReply.bubbles[lastReply.bubbles.length - 1].after(replyBar);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+// The reply stopped being editable: the user sent a message, or the
+// chat ended. An open editor is dropped without sending.
+function clearReplyEditing() {
+  if (replyEditor) replyEditor.discard();
+  if (replyBar) replyBar.remove();
+  replyBar = null;
+  lastReply = null;
+}
+
+function openReplyEditor() {
+  const reply = lastReply, turn = lastReplyTurn;
+  const stEl = reply.inner ? reply.inner.querySelector(".st") : null;
+  const thEl = reply.inner ? reply.inner.querySelector("div:not(.st)") : null;
+  const fields = [stEl, thEl, ...reply.bubbles].filter(Boolean);
+  const before = fields.map(el => el.textContent);
+  setEditable(fields, true);
+
+  const saveBtn = document.createElement("button");
+  saveBtn.textContent = "save";
+  const cancelBtn = document.createElement("button");
+  cancelBtn.textContent = "cancel";
+  const hint = document.createElement("span");
+  hint.className = "hint";
+  hint.textContent = "edit above (Enter starts a new bubble) — the persona will remember your version";
+  replyBar.replaceChildren(saveBtn, cancelBtn, hint);
+  reply.bubbles[0].focus();
+
+  const restore = () => fields.forEach((el, i) => { el.textContent = before[i]; });
+  const close = () => { replyEditor = null; setEditable(fields, false); };
+  const discard = () => { restore(); close(); };
+  const save = () => {
+    close();
+    const after = fields.map(el => cleanText(el.textContent));
+    if (after.every((t, i) => t === before[i])) {
+      showReplyActions();  // nothing changed
+      return;
+    }
+    if (!ws || ws.readyState !== 1) { restore(); return; }
+    const edit = { type: "edit", turn,
+                   reply: reply.bubbles.map(b => cleanText(b.textContent)).join("\n") };
+    if (stEl) edit.state = cleanText(stEl.textContent);
+    if (thEl) edit.thoughts = cleanText(thEl.textContent);
+    // The row comes back once the server confirms ("edited").
+    if (replyBar) replyBar.replaceChildren();
+    pendingEdits.set(turn, { reply, stEl, thEl, fields, before });
+    ws.send(JSON.stringify(edit));
+  };
+  saveBtn.onclick = save;
+  cancelBtn.onclick = () => { discard(); showReplyActions(); };
+  replyEditor = { save, discard };
+}
+
+// "↻ regenerate": ask for a new reply to the same message. The old one
+// stays on screen until the server confirms ("regenerated") — if
+// regeneration fails, it is simply kept.
+function regenerateReply() {
+  if (!ws || ws.readyState !== 1 || !lastReply) return;
+  ws.send(JSON.stringify({ type: "regenerate", turn: lastReplyTurn }));
+  if (replyBar) replyBar.remove();
+  replyBar = null;
+  setEnabled(false);  // one reply at a time, as when sending a message
+}
+
+function updateModeToggle() {
+  modeToggle.textContent = autoSpectate ? "▶ auto" : "⏸ step-by-step";
+}
+
+modeToggle.onclick = () => {
+  autoSpectate = !autoSpectate;
+  updateModeToggle();
+  // If we're currently paused on an edit window, switching to auto
+  // finalizes it right away (keeping any edits already made).
+  if (autoSpectate && finishEditing) finishEditing();
+};
+
+who.onclick = () => corePanel.classList.add("open");
+document.getElementById("core-close").onclick = () => corePanel.classList.remove("open");
+corePanel.onclick = (e) => { if (e.target === corePanel) corePanel.classList.remove("open"); };
+
+function add(cls, text) {
+  const div = document.createElement("div");
+  div.className = cls === "sys" ? "sys" : "bubble " + cls;
+  div.textContent = text;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+  return div;
+}
+
+function setEnabled(on) { input.disabled = !on; send.disabled = !on; if (on) input.focus(); }
+
+// --- persona picker -------------------------------------------------------
+
+function addListMessage(text) {
+  const div = document.createElement("div");
+  div.className = "sys";
+  div.textContent = text;
+  personaList.appendChild(div);
+}
+
+async function loadPersonas() {
+  // Clear only persona cards/sys messages, preserving the spectate banner.
+  for (const el of personaList.querySelectorAll(".persona-card, .sys")) el.remove();
+  const res = await fetch("/personas");
+  const data = await res.json();
+  personas = data.personas || [];
+  generationAllowed = !!data.generation_allowed;
+  cancellationAllowed = !!data.cancellation_allowed;
+  memoryAllowed = !!data.memory_allowed;
+  updateToolButtons();
+  if (data.configured === false) {
+    addListMessage("no model is set up yet — open ⚙ settings (top right)");
+  }
+  if (!personas.length) {
+    addListMessage(generationAllowed
+      ? "no personas yet — generate one below"
+      : "no personas available");
+  } else if (!personas.some(p => p.chat_ready)) {
+    addListMessage("no persona can chat yet: voice calibration didn't finish — run bot-roulette enrich on them");
+  }
+  for (const p of personas) {
+    const card = document.createElement("button");
+    card.className = "persona-card" + (p.chat_ready ? "" : " pending");
+    card.dataset.id = p.id;
+    const name = document.createElement("div");
+    name.className = "pname";
+    name.textContent = p.name;
+    const snippet = document.createElement("div");
+    snippet.className = "psnippet";
+    snippet.textContent = p.core;
+    card.append(name, snippet);
+    card.onclick = () => selectPersona(p.id);
+    personaList.appendChild(card);
+  }
+  // keep selection if still present
+  if (selectedId && personas.some(p => p.id === selectedId)) selectPersona(selectedId);
+  // re-apply spectate-mode locked-A marker to the freshly built cards
+  updatePickerMode();
+}
+
+function selectPersona(id) {
+  selectedId = id;
+  for (const el of personaList.querySelectorAll(".persona-card"))
+    el.classList.toggle("selected", el.dataset.id === id);
+  const p = personas.find(p => p.id === id);
+  if (!p) return;
+  previewPlaceholder.style.display = "none";
+  previewContent.style.display = "block";
+  const ready = !!p.chat_ready;
+  startChat.disabled = !ready;
+  spectateBtn.disabled = !ready;
+  startChat.title = ready ? "" : "voice calibration has not finished for this persona";
+  spectateBtn.title = ready ? "" : "voice calibration has not finished for this persona";
+  previewName.textContent = p.name;
+  previewCore.textContent = p.core;
+  deleteBtn.disabled = !cancellationAllowed;
+  deleteBtn.title = cancellationAllowed
+    ? "permanently delete this persona"
+    : "persona deletion is disabled on this server";
+  updatePickerMode();
+  loadSavedChats(id);
+}
+
+// --- saved chats (resume) ---------------------------------------------------
+// Each chat is independent: the list only ever shows this persona's own
+// chats, and resuming loads exactly that chat's history — nothing else.
+
+// Only the newest loadSavedChats() call may render: selecting persona A
+// then B quickly used to leave BOTH lists on screen under B's preview
+// (A's request finishing last), and a card there resumed a chat with A.
+let chatListSeq = 0;
+
+async function loadSavedChats(personaId) {
+  const seq = ++chatListSeq;
+  chatList.innerHTML = "";
+  if (!memoryAllowed) return;
+  let chats = [];
+  try {
+    const res = await fetch(`/personas/${encodeURIComponent(personaId)}/chats`);
+    if (!res.ok) return;
+    chats = (await res.json()).chats || [];
+  } catch { return; }
+  if (seq !== chatListSeq) return;  // a newer call owns the list now
+  if (!chats.length) return;
+  const label = document.createElement("div");
+  label.className = "cl-label";
+  label.textContent = "previous chats";
+  chatList.appendChild(label);
+  for (const c of chats) {
+    const card = document.createElement("button");
+    card.className = "chat-card";
+    const date = document.createElement("span");
+    date.className = "cdate";
+    date.textContent = new Date((c.updated || 0) * 1000)
+      .toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    const preview = document.createElement("span");
+    preview.className = "cpreview";
+    preview.textContent = c.preview || "(no messages yet)";
+    card.append(date, preview);
+    card.onclick = () => {
+      picker.classList.remove("open");
+      connect(personaId, null, c.id);
+    };
+    if (c.ended) {
+      const ended = document.createElement("span");
+      ended.className = "cended";
+      ended.textContent = "ended — read only";
+      card.appendChild(ended);
+      card.title = "view this chat (read-only: the conversation has ended)";
+    } else {
+      card.title = "resume this chat";
+    }
+    const del = document.createElement("button");
+    del.className = "cdel";
+    del.textContent = "✕";
+    del.title = "delete this saved chat";
+    del.onclick = async (e) => {
+      e.stopPropagation();
+      if (!confirm("Delete this saved chat? This cannot be undone.")) return;
+      try {
+        const res = await fetch(`/personas/${encodeURIComponent(personaId)}/chats/${encodeURIComponent(c.id)}`, { method: "DELETE" });
+        if (!res.ok) throw new Error((await res.json()).detail || res.statusText);
+        // Re-render only if this persona is still the one on screen.
+        if (selectedId === personaId) loadSavedChats(personaId);
+      } catch (err) { alert("could not delete: " + err.message); }
+    };
+    card.appendChild(del);
+    chatList.appendChild(card);
+  }
+}
+
+// Spectator mode selection: first "watch two personas chat →" arms the
+// mode and locks persona A; then picking any persona (even the same
+// one) starts the show. A banner at the top of the list shows who A is
+// and offers a cancel button (Esc also works).
+function updatePickerMode() {
+  const status = picker.querySelector("header .status");
+  if (spectateFirstId) {
+    const first = personas.find(p => p.id === spectateFirstId);
+    status.textContent = "pick persona B — who they'll chat with";
+    spectateBannerName.textContent = first ? first.name : "?";
+    spectateBanner.classList.add("open");
+    startChat.textContent = "👀 watch them chat";
+    spectateBtn.style.display = "none";
+  } else {
+    status.textContent = "choose who to chat with";
+    spectateBanner.classList.remove("open");
+    startChat.textContent = "chat with this person";
+    spectateBtn.style.display = "";
+  }
+  // Mark persona A's card as locked so it's visually distinct from the
+  // currently-previewed (selected) card.
+  for (const el of personaList.querySelectorAll(".persona-card"))
+    el.classList.toggle("locked-a", el.dataset.id === spectateFirstId);
+}
+
+spectateBtn.onclick = () => {
+  if (!selectedId) return;
+  const selected = personas.find(p => p.id === selectedId);
+  if (!selected || !selected.chat_ready) return;
+  spectateFirstId = selectedId;
+  updatePickerMode();
+};
+
+spectateCancel.onclick = () => {
+  spectateFirstId = null;
+  updatePickerMode();
+};
+
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  if (settingsPanel.classList.contains("open")) {
+    closeSettings();
+  } else if (spectateFirstId) {
+    spectateFirstId = null;
+    updatePickerMode();
+  }
+});
+
+function openPicker() {
+  picker.classList.add("open");
+  pickerClose.style.display = chatActive ? "" : "none";
+  loadPersonas();
+  resumeActiveJob();
+}
+
+// If a creation job is already running server-side (started earlier, or
+// from another tab / before a page reload), pick up its busy state.
+let pollingJobId = null;
+async function resumeActiveJob() {
+  try {
+    const res = await fetch("/jobs/active");
+    if (!res.ok) return;
+    const { job, kind } = await res.json();
+    if (job && job !== pollingJobId) {
+      setToolsBusy(true);
+      pollJob(job, kind === "import-cv" ? "building persona from CV" : "generating persona");
+    } else if (!job && !pollingJobId) {
+      setToolsBusy(false);
+    }
+  } catch { /* server unreachable; leave UI as is */ }
+}
+
+pickerClose.onclick = () => picker.classList.remove("open");
+refreshBtn.onclick = loadPersonas;
+change.onclick = openPicker;
+startChat.onclick = () => {
+  if (!selectedId) return;
+  const selected = personas.find(p => p.id === selectedId);
+  if (!selected || !selected.chat_ready) return;
+  if (spectateFirstId) {
+    const first = personas.find(p => p.id === spectateFirstId);
+    if (!first || !first.chat_ready) return;
+  }
+  picker.classList.remove("open");
+  if (spectateFirstId) {
+    const a = spectateFirstId;
+    spectateFirstId = null;
+    updatePickerMode();
+    connect(a, selectedId);
+  } else {
+    connect(selectedId);
+  }
+};
+
+stopWatch.onclick = () => {
+  if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "stop" }));
+  stopWatch.disabled = true;
+};
+
+// --- persona creation jobs -------------------------------------------------
+
+function setJobStatus(text, isErr = false) {
+  jobStatus.textContent = text;
+  jobStatus.classList.toggle("err", isErr);
+}
+
+// --- generation log panel ---
+let logLines = 0;  // lines already shown (drives incremental ?since=)
+
+function resetJobLog() {
+  logLines = 0;
+  jobLog.textContent = "";
+  jobLogToggle.classList.add("visible");
+  jobLogToggle.textContent = jobLog.classList.contains("open")
+    ? "hide progress" : "show progress";
+}
+
+function appendJobLog(lines) {
+  if (!lines || !lines.length) return;
+  const atBottom =
+    jobLog.scrollHeight - jobLog.scrollTop - jobLog.clientHeight < 30;
+  jobLog.textContent += lines.join("\n") + "\n";
+  if (atBottom) jobLog.scrollTop = jobLog.scrollHeight;
+}
+
+jobLogToggle.onclick = () => {
+  const open = jobLog.classList.toggle("open");
+  jobLogToggle.textContent = open ? "hide progress" : "show progress";
+  if (open) jobLog.scrollTop = jobLog.scrollHeight;
+};
+
+let generationAllowed = true;
+let cancellationAllowed = true;
+let memoryAllowed = false;
+let toolsBusy = false;
+
+function updateToolButtons() {
+  const off = toolsBusy || !generationAllowed;
+  genBtn.disabled = off;
+  importBtn.disabled = off;
+  const hint = generationAllowed ? "" : "persona creation is disabled on this server";
+  genBtn.title = hint;
+  importBtn.title = hint;
+}
+
+function setToolsBusy(busy) {
+  toolsBusy = busy;
+  updateToolButtons();
+}
+
+deleteBtn.onclick = async () => {
+  if (!selectedId || !cancellationAllowed) return;
+  const p = personas.find(p => p.id === selectedId);
+  const name = p ? p.name : selectedId;
+  if (!confirm(`Permanently delete ${name}? This cannot be undone.`)) return;
+  try {
+    const res = await fetch(`/personas/${encodeURIComponent(selectedId)}`, { method: "DELETE" });
+    if (!res.ok) throw new Error((await res.json()).detail || res.statusText);
+    selectedId = null;
+    previewContent.style.display = "none";
+    previewPlaceholder.style.display = "";
+    await loadPersonas();
+  } catch (e) {
+    alert("could not delete: " + e.message);
+  }
+};
+
+async function pollJob(jobId, label) {
+  pollingJobId = jobId;
+  setJobStatus(`${label}… you can keep chatting with the other personas meanwhile`);
+  resetJobLog();
+  jobStop.style.display = "";
+  jobStop.disabled = false;
+  const finish = () => {
+    pollingJobId = null;
+    jobStop.style.display = "none";
+    setToolsBusy(false);
+  };
+  while (true) {
+    await new Promise(r => setTimeout(r, 5000));
+    let job;
+    try {
+      const res = await fetch(`/jobs/${jobId}?since=${logLines}`);
+      job = await res.json();
+    } catch { continue; }
+    if (job.log) {
+      appendJobLog(job.log);
+      logLines = job.log_total;
+    }
+    if (job.status === "running") {
+      const m = Math.floor(job.elapsed / 60), s = job.elapsed % 60;
+      const t = `${m}m${String(s).padStart(2, "0")}s`;
+      if (job.cancelling) {
+        jobStop.disabled = true;
+        setJobStatus(`stopping… (after the current step) ${t}`);
+      } else {
+        setJobStatus(`${label}… ${t} — you can keep chatting meanwhile`);
+      }
+    } else if (job.status === "done") {
+      finish();
+      setJobStatus(`done: ${job.persona} was created`);
+      await loadPersonas();
+      // Done doesn't always mean chat-ready: voice calibration may have
+      // failed (see the log). With no other persona to text, it is
+      // skipped and the persona can chat at once.
+      const p = personas.find(p => p.id === job.persona);
+      if (p) {
+        setJobStatus(!p.chat_ready
+          ? `done: ${p.name} was created, but can't chat yet: voice calibration is pending (see the progress log)`
+          : p.voice_calibrated
+            ? `done: ${p.name} is ready`
+            : `done: ${p.name} is ready (voice calibration skipped: no other persona to text with yet)`);
+        selectPersona(p.id);
+      }
+      return;
+    } else if (job.status === "cancelled") {
+      finish();
+      setJobStatus(`${label} stopped — anything already saved stays on disk (see the progress log)`);
+      // Stopped during voice calibration, the persona is already listed
+      // (waiting on voice): refresh so it shows up.
+      await loadPersonas();
+      return;
+    } else {
+      finish();
+      setJobStatus(`${label} failed: ${job.error || "unknown error"}`, true);
+      return;
+    }
+  }
+}
+
+jobStop.onclick = async () => {
+  if (!pollingJobId) return;
+  if (!confirm("Stop creating this persona? It stops after the current step; anything already saved is kept.")) return;
+  jobStop.disabled = true;
+  try {
+    const res = await fetch(`/jobs/${pollingJobId}/cancel`, { method: "POST" });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.detail || res.statusText);
+    setJobStatus("stopping… (after the current step)");
+  } catch (e) {
+    jobStop.disabled = false;
+    setJobStatus("could not stop: " + e.message, true);
+  }
+};
+
+const RETIREMENT_AGE = 55;
+const bandStart = (band) => Number(band.split("-")[0]);
+
+function generationFieldOptions(trait, source) {
+  let values = generationOptions[source];
+  if (trait === "work_area") {
+    // Retirement needs an age band starting at 55 or later (an age in
+    // your own words is checked when you generate).
+    const ageBand = generationSelects.get("age_band").value;
+    const bands = ageBand && ageBand !== CUSTOM ? [ageBand] : generationOptions.age_bands;
+    if (!bands.some(band => bandStart(band) >= RETIREMENT_AGE)) {
+      values = values.filter(value => value !== "retired");
+    }
+  } else if (trait === "age_band") {
+    if (generationSelects.get("work_area")?.value === "retired") {
+      values = values.filter(value => bandStart(value) >= RETIREMENT_AGE);
+    }
+  } else if (trait === "employment_stability") {
+    const workArea = generationSelects.get("work_area").value;
+    if (workArea === "unemployed or between jobs" || workArea === "retired") return [];
+    if (workArea === "student with side jobs") {
+      return ["precarious (short contracts, gigs, seasonal)"];
+    }
+  }
+  return values;
+}
+
+// Your own words fit every trait but an employment stability that the
+// area of work already decides (none, or precarious for a student).
+function customAllowed(trait) {
+  if (trait !== "employment_stability") return true;
+  const workArea = generationSelects.get("work_area").value;
+  return !["unemployed or between jobs", "retired", "student with side jobs"].includes(workArea);
+}
+
+function setGenerationSelectOptions(select, values, allowCustom, keepValue = true) {
+  const previous = keepValue ? select.value : "";
+  select.replaceChildren(new Option("Random", ""));
+  for (const value of values) select.add(new Option(value, value));
+  if (allowCustom) select.add(new Option("✎ write your own…", CUSTOM));
+  if (values.includes(previous) || (allowCustom && previous === CUSTOM)) select.value = previous;
+}
+
+// A trait's own-words field shows only while it's chosen; hidden, it is
+// also disabled, so the form doesn't require it.
+function syncCustomField(trait) {
+  const custom = generationCustoms.get(trait);
+  custom.hidden = custom.disabled = generationSelects.get(trait).value !== CUSTOM;
+}
+
+function refreshDependentOptions() {
+  for (const [trait, source] of [
+    ["age_band", "age_bands"],
+    ["work_area", "work_areas"],
+    ["employment_stability", "employment_stability"],
+  ]) {
+    const select = generationSelects.get(trait);
+    const values = generationFieldOptions(trait, source);
+    setGenerationSelectOptions(select, values, customAllowed(trait));
+    if (trait === "employment_stability") {
+      select.disabled = values.length === 0;
+      select.options[0].textContent = select.disabled ? "Not applicable" : "Random";
+    }
+    syncCustomField(trait);
+  }
+}
+
+function renderGenerationFields() {
+  genFields.replaceChildren();
+  generationSelects.clear();
+  generationCustoms.clear();
+  for (const [trait, labelText, source, example] of generationFieldSpecs) {
+    const field = document.createElement("div");
+    field.className = "gen-field";
+    const label = document.createElement("label");
+    label.htmlFor = `gen-trait-${trait}`;
+    label.textContent = labelText;
+    const select = document.createElement("select");
+    select.id = label.htmlFor;
+    select.name = trait;
+    select.dataset.trait = trait;
+    const custom = document.createElement("input");
+    custom.placeholder = example;
+    custom.maxLength = CUSTOM_MAX_CHARS;
+    custom.required = true;
+    custom.pattern = ".*\\S.*";
+    if (trait === "age_band") {
+      custom.pattern = CUSTOM_AGE_PATTERN;
+      custom.title = "an age like 37, or a range like 40-45 (18 to 100)";
+    }
+    custom.setAttribute("aria-label", `${labelText}, in your own words`);
+    generationSelects.set(trait, select);
+    generationCustoms.set(trait, custom);
+    setGenerationSelectOptions(
+      select, generationFieldOptions(trait, source), customAllowed(trait), false
+    );
+    syncCustomField(trait);
+    select.addEventListener("change", () => {
+      if (["age_band", "work_area"].includes(trait)) refreshDependentOptions();
+      syncCustomField(trait);
+      if (select.value === CUSTOM) custom.focus();
+      genError.textContent = "";
+    });
+    field.append(label, select, custom);
+    genFields.append(field);
+  }
+  refreshDependentOptions();
+}
+
+// A name you already use works (the new folder gets a number), but the
+// picker would then list two people with the same name.
+function updateNameNote() {
+  const name = genFirstName.value.trim();
+  const taken = name && personas.some(p => p.name.toLowerCase() === name.toLowerCase());
+  genNameNote.textContent = taken
+    ? `You already have a persona called ${name}: the picker will list both.`
+    : "";
+}
+
+async function openGenerationDialog() {
+  genError.textContent = "";
+  genBtn.disabled = true;
+  try {
+    if (!generationOptions) {
+      const res = await fetch("/personas/generation-options");
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.detail || res.statusText);
+      generationOptions = body;
+    }
+    genForm.reset();
+    renderGenerationFields();
+    updateNameNote();
+    genDialog.showModal();
+  } catch (e) {
+    setJobStatus("could not load generation choices: " + e.message, true);
+  } finally {
+    updateToolButtons();
+  }
+}
+
+genBtn.onclick = openGenerationDialog;
+genClose.onclick = () => genDialog.close();
+genCancel.onclick = () => genDialog.close();
+genFirstName.addEventListener("input", updateNameNote);
+genForm.addEventListener("input", () => { genError.textContent = ""; });
+genForm.onsubmit = async (event) => {
+  event.preventDefault();
+  const identity = {
+    first_name: genFirstName.value,
+    surname: genSurname.value,
+    sex: genForm.elements.sex.value,
+    country: genCountry.value,
+  };
+  if (genChatLanguage.value.trim()) identity.chat_language = genChatLanguage.value;
+  const fixed_traits = {};
+  for (const [trait, select] of generationSelects) {
+    if (select.value === CUSTOM) fixed_traits[trait] = generationCustoms.get(trait).value;
+    else if (select.value) fixed_traits[trait] = select.value;
+  }
+  genSubmit.disabled = true;
+  genError.textContent = "";
+  try {
+    const res = await fetch("/personas/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ identity, fixed_traits }),
+    });
+    // Read the body ONCE: a Response body is a stream, so a second
+    // res.json() throws "body stream already read" and would mask the
+    // real error (e.g. the 409 "already being created" message).
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.detail || res.statusText);
+    genDialog.close();
+    setToolsBusy(true);
+    setJobStatus("starting generation…");
+    pollJob(body.job, "generating persona");
+  } catch (e) {
+    genError.textContent = "could not start: " + e.message;
+    resumeActiveJob();
+  } finally {
+    genSubmit.disabled = false;
+  }
+};
+
+importBtn.onclick = () => cvFile.click();
+cvFile.onchange = async () => {
+  const file = cvFile.files[0];
+  cvFile.value = "";
+  if (!file) return;
+  setToolsBusy(true);
+  setJobStatus(`uploading ${file.name}…`);
+  try {
+    const fd = new FormData();
+    fd.append("pdf", file);
+    const res = await fetch("/personas/import-cv", { method: "POST", body: fd });
+    // Read the body ONCE (see genBtn): a second res.json() would throw
+    // and hide the real error, e.g. the 415 "must be a PDF" detail.
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.detail || res.statusText);
+    pollJob(body.job, "building persona from CV");
+  } catch (e) {
+    setJobStatus("could not start: " + e.message, true);
+    resumeActiveJob();
+  }
+};
+
+// --- ⚙ settings: where the model runs, the model and its API key ---------
+// The server never sends a key back: the panel shows hints of them (their
+// last 4 characters) and only sends a key when one is typed. Every change
+// is checked with OpenRouter, or the server, before the server saves it.
+
+const settingsModelLabel = document.getElementById("settings-model-label");
+const settingsKeyLabel = document.getElementById("settings-key-label");
+const settingsServer = document.getElementById("settings-server");
+const settingsServerLabel = document.getElementById("settings-server-label");
+let savedSettings = {};  // as the server last sent them
+
+function setSettingsMsg(text, kind = "") {
+  settingsMsg.textContent = text;
+  settingsMsg.className = kind;
+}
+
+// FastAPI's "detail" is a string, except for request validation errors
+// (422), where it is a list of objects.
+function errorText(body, res) {
+  if (typeof body.detail === "string") return body.detail;
+  return res.status === 422 ? "invalid value (too long?)" : res.statusText;
+}
+
+// Where the form says the model should run: a server's address, "" for
+// OpenRouter, or null while "your own server" has no address yet.
+function chosenServer() {
+  if (settingsForm.elements.where.value !== "server") return "";
+  return settingsServer.value.trim().replace(/\/+$/, "") || null;
+}
+
+function renderSettings(s) {
+  savedSettings = s;
+  const row = (label, value) => {
+    const div = document.createElement("div");
+    const b = document.createElement("b");
+    b.textContent = value;
+    div.append(`${label}: `, b);
+    return div;
+  };
+  const warn = (text) => {
+    const div = document.createElement("div");
+    div.className = "warn";
+    div.textContent = text;
+    return div;
+  };
+  const own = !!s.server;
+  const host = own ? "your server" : "OpenRouter";
+  settingsCurrent.replaceChildren(
+    row("runs on", own ? s.server : "OpenRouter"),
+    row("model", s.model || "not set"),
+    row("API key", s.api_key_hint || (own ? "none" : "not set")),
+  );
+  if (s.model && s.model_known === false) {
+    settingsCurrent.append(warn(`${host} has no model called “${s.model}”: replies will fail until you pick one it has`));
+  }
+  if (!s.configured) {
+    settingsCurrent.append(warn(own
+      ? "chats and persona creation stay off until a model is set"
+      : "chats and persona creation stay off until both are set"));
+  }
+  settingsForm.elements.where.value = own ? "server" : "openrouter";
+  settingsServer.value = s.server || "";
+  settingsModel.value = s.model || "";
+  settingsKey.value = "";
+  updateSettingsForm();
+}
+
+// Labels, hints and the address field follow the choice in the form. A
+// saved key is offered only for the server it was saved for.
+function updateSettingsForm() {
+  const own = settingsForm.elements.where.value === "server";
+  settingsServerLabel.hidden = settingsServer.hidden = settingsServer.disabled = !own;
+  settingsServer.required = own;
+  const target = chosenServer();
+  const saved = savedSettings.server || "";
+  // Moving needs a model the other server has: pick one of its suggestions.
+  settingsModel.required = target !== saved;
+  settingsModelLabel.textContent = own ? "model (as your server names it)" : "model (OpenRouter id)";
+  settingsModel.placeholder = own ? "e.g. qwen2.5vl:7b" : "e.g. z-ai/glm-5.2";
+  settingsKeyLabel.textContent = own ? "API key (only if your server needs one)" : "OpenRouter API key";
+  const hint = !own ? savedSettings.openrouter_key_hint
+    : target === saved ? savedSettings.api_key_hint : "";
+  settingsKey.placeholder = hint
+    ? `leave empty to keep the saved key (${hint})`
+    : own ? "leave empty if your server needs none" : "paste your OpenRouter key (sk-or-…)";
+}
+
+// Another server rarely has the saved model: an untouched model field
+// empties, and the suggestions become that server's models. A key typed
+// for one server never goes to another.
+function settingsTargetChanged() {
+  updateSettingsForm();
+  setSettingsMsg("");
+  settingsKey.value = "";
+  const target = chosenServer();
+  const savedModel = savedSettings.model || "";
+  if (target === (savedSettings.server || "")) {
+    if (!settingsModel.value) settingsModel.value = savedModel;
+  } else if (settingsModel.value === savedModel) {
+    settingsModel.value = "";
+  }
+  if (target === null) {
+    suggestionsFor = undefined;
+    settingsModels.replaceChildren();
+    return;
+  }
+  loadModelSuggestions(target);
+}
+
+for (const radio of settingsForm.elements.where) radio.addEventListener("change", settingsTargetChanged);
+settingsServer.addEventListener("change", settingsTargetChanged);
+
+// Suggestions for the model field: OpenRouter's catalog, or the models a
+// server lists. Only the latest request counts.
+let suggestionsFor;  // the server they were loaded for
+let suggestionsRequest = 0;
+async function loadModelSuggestions(server) {
+  if (server === suggestionsFor) return;
+  const request = ++suggestionsRequest;
+  suggestionsFor = undefined;
+  settingsModels.replaceChildren();
+  try {
+    const res = await fetch(`/settings/models?server=${encodeURIComponent(server)}`);
+    const body = await res.json().catch(() => ({}));
+    if (request !== suggestionsRequest) return;
+    if (!res.ok) throw new Error(errorText(body, res));
+    settingsModels.replaceChildren(...body.models.map((m) => {
+      const opt = document.createElement("option");
+      opt.value = m.id;
+      if (m.name !== m.id) opt.label = m.name;
+      return opt;
+    }));
+    suggestionsFor = server;
+  } catch (e) {
+    // Optional: the model can still be typed. A server's own answer helps.
+    if (request === suggestionsRequest && server) {
+      setSettingsMsg("couldn't list that server's models: " + e.message);
+    }
+  }
+}
+
+async function openSettings() {
+  settingsPanel.classList.add("open");
+  settingsCurrent.textContent = "loading…";
+  setSettingsMsg("");
+  suggestionsFor = undefined;  // a server's models may have changed since
+  try {
+    const res = await fetch("/settings");
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(errorText(body, res));
+    renderSettings(body);
+    loadModelSuggestions(body.server || "");
+  } catch (e) {
+    settingsCurrent.textContent = "";
+    setSettingsMsg("could not load the settings: " + e.message, "err");
+  }
+}
+
+function closeSettings() {
+  settingsPanel.classList.remove("open");
+  settingsKey.value = "";  // don't leave a typed key sitting in the page
+}
+
+settingsOpen.onclick = openSettings;
+document.getElementById("settings-close").onclick = closeSettings;
+settingsPanel.onclick = (e) => { if (e.target === settingsPanel) closeSettings(); };
+
+settingsForm.onsubmit = async (e) => {
+  e.preventDefault();
+  const target = chosenServer();
+  if (target === null) {  // the form's own check normally stops this first
+    setSettingsMsg("type your server's address", "err");
+    return;
+  }
+  const update = { model: settingsModel.value.trim(), api_key: settingsKey.value.trim() };
+  if (target !== (savedSettings.server || "")) update.server = target;
+  settingsSave.disabled = true;
+  setSettingsMsg(`checking with ${target ? "your server" : "OpenRouter"}…`);
+  try {
+    const res = await fetch("/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(update),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(errorText(body, res));
+    renderSettings(body);
+    setSettingsMsg("saved — the next reply uses it", "ok");
+    loadPersonas();  // drop the picker's "not set yet" notice
+  } catch (err) {
+    setSettingsMsg("not saved: " + err.message, "err");
+  } finally {
+    settingsSave.disabled = false;
+  }
+};
+
+// --- chat -------------------------------------------------------------------
+
+function connect(personaId, personaBId, chatId) {
+  chat.innerHTML = "";
+  typing.textContent = "";
+  statusEl.textContent = "connecting…";
+  setEnabled(false);
+  who.disabled = true;
+  corePanel.classList.remove("open");
+  coreName.textContent = "";
+  coreText.textContent = "";
+  scenarioText.textContent = "";
+  if (ws) { ws.onclose = null; ws.close(); }
+  chatActive = true;
+  lastSpeaker = null;
+  const spectating = !!personaBId;
+  stopWatch.style.display = spectating ? "" : "none";
+  stopWatch.disabled = false;
+  modeToggle.style.display = spectating ? "" : "none";
+  autoSpectate = false;      // every show starts in step-by-step mode
+  finishEditing = null;
+  cancelEditing = null;
+  updateModeToggle();
+  lastReply = null;           // the old chat's DOM is gone (chat cleared)
+  lastReplyTurn = 0;
+  replyBar = null;
+  replyEditor = null;
+  pendingEdits.clear();
+  input.placeholder = spectating ? "you're just watching…" : "say something…";
+
+  const proto = location.protocol === "https:" ? "wss" : "ws";
+  ws = new WebSocket(`${proto}://${location.host}/ws`);
+  ws.onopen = () => {
+    // Send OUR wall-clock time: the persona's entry story is built
+    // around the time of day the user is actually living, not the
+    // server's (which is UTC in production). Naive local ISO, no offset
+    // — sv-SE gives "YYYY-MM-DD HH:MM:SS" in local time.
+    const localTime = new Date().toLocaleString("sv-SE").replace(" ", "T");
+    const start = {
+      type: "start", persona: personaId,
+      local_time: localTime,
+    };
+    if (personaBId) start.persona_b = personaBId;
+    if (chatId) start.chat_id = chatId;
+    ws.send(JSON.stringify(start));
+    // The server generates this session's entry story before matching.
+    statusEl.textContent = "setting the scene…";
+  };
+
+  // In spectator mode a name label is shown whenever the speaker changes.
+  function speakerLabel(who, name) {
+    if (who === lastSpeaker) return;
+    lastSpeaker = who;
+    const div = document.createElement("div");
+    div.className = "speaker " + who;
+    div.textContent = name;
+    chat.appendChild(div);
+  }
+
+  ws.onmessage = (ev) => {
+    const msg = JSON.parse(ev.data);
+    if (msg.type === "matched") {
+      // The server shows a "typing" indicator while it generates the
+      // session's entry story(ies); the match message means it's done.
+      typing.textContent = "";
+      if (msg.mode === "spectate") {
+        statusEl.textContent = `watching ${msg.name} & ${msg.name_b}`;
+        add("sys", `${msg.name} and ${msg.name_b} just got paired — you're watching`);
+        add("sys", "they're strangers to each other and don't know you exist");
+      } else {
+        statusEl.textContent = `chatting with ${msg.name}`;
+        add("sys", `you're now chatting with ${msg.name}. say hi`);
+        add("sys", "you're strangers — you know nothing about them, and they know nothing about you");
+        setEnabled(true);
+      }
+    } else if (msg.type === "core") {
+      coreName.textContent = msg.name;
+      coreText.textContent = msg.text;
+      scenarioText.textContent = msg.scenario || "";
+      who.disabled = false;
+    } else if (msg.type === "typing") {
+      typing.textContent = msg.name ? `${msg.name} is typing…` : "typing…";
+    } else if (msg.type === "inner") {
+      if (msg.who) speakerLabel(msg.who, msg.name);
+      const div = document.createElement("div");
+      div.className = "inner" + (msg.who === "b" ? " b" : "");
+      const st = document.createElement("div");
+      st.className = "st";
+      st.textContent = msg.state;
+      const th = document.createElement("div");
+      th.textContent = msg.thoughts;
+      div.append(st, th);
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+      if (!msg.who) lastReply = { inner: div, bubbles: [] };
+    } else if (msg.type === "bubble") {
+      typing.textContent = "";  // spectate: no "done" between turns
+      if (msg.who) {
+        speakerLabel(msg.who, msg.name);
+        add(msg.who === "b" ? "pb" : "them", msg.text);
+      } else {
+        const el = add("them", msg.text);
+        if (!lastReply) lastReply = { inner: null, bubbles: [] };
+        lastReply.bubbles.push(el);
+      }
+    } else if (msg.type === "done") {
+      typing.textContent = "";
+      setEnabled(true);
+      lastReplyTurn = msg.turn || 0;
+      showReplyActions();
+    } else if (msg.type === "chat") {
+      // Memory is on: note the chat id (new chats) or that we resumed.
+      if (msg.resumed) add("sys", "— earlier messages restored —");
+      // A resumed chat's last reply stays editable until the next message.
+      lastReplyTurn = msg.turn || 0;
+      showReplyActions();
+    } else if (msg.type === "regenerated") {
+      // The new reply replaces the old one: drop it before the new
+      // monologue and bubbles arrive (as usual: inner, bubble, done).
+      if (lastReply) {
+        if (lastReply.inner) lastReply.inner.remove();
+        for (const b of lastReply.bubbles) b.remove();
+      }
+      lastReply = null;
+    } else if (msg.type === "regenerate_rejected") {
+      // Nothing changed server-side: the old reply is still the last one.
+      typing.textContent = "";
+      add("sys", "couldn't regenerate: " + msg.reason);
+      setEnabled(true);
+      showReplyActions();
+    } else if (msg.type === "edited" || msg.type === "edit_rejected") {
+      const p = pendingEdits.get(msg.turn);
+      pendingEdits.delete(msg.turn);
+      if (!p) return;
+      if (msg.type === "edited") {
+        // Show the reply exactly as stored — what the persona remembers
+        // and a resumed chat replays (Enter may have split a bubble).
+        if (p.stEl) p.stEl.textContent = msg.state;
+        if (p.thEl) p.thEl.textContent = msg.thoughts;
+        const els = msg.bubbles.map(text => {
+          const d = document.createElement("div");
+          d.className = "bubble them";
+          d.textContent = text;
+          return d;
+        });
+        p.reply.bubbles[0].before(...els);
+        for (const b of p.reply.bubbles) b.remove();
+        p.reply.bubbles = els;
+      } else {
+        p.fields.forEach((el, i) => { el.textContent = p.before[i]; });
+        add("sys", "edit not applied: " + msg.reason);
+      }
+      if (p.reply === lastReply) showReplyActions();
+    } else if (msg.type === "replay") {
+      if (msg.who === "inner") {
+        // Replayed inner monologue: same markup as a live "inner" message.
+        const div = document.createElement("div");
+        div.className = "inner";
+        const st = document.createElement("div");
+        st.className = "st";
+        st.textContent = msg.state || "";
+        const th = document.createElement("div");
+        th.textContent = msg.thoughts || "";
+        div.append(st, th);
+        chat.appendChild(div);
+        chat.scrollTop = chat.scrollHeight;
+        lastReply = { inner: div, bubbles: [] };
+      } else if (msg.who === "me") {
+        add("me", msg.text);
+        lastReply = null;
+      } else {
+        const el = add("them", msg.text);
+        if (!lastReply) lastReply = { inner: null, bubbles: [] };
+        lastReply.bubbles.push(el);
+      }
+    } else if (msg.type === "editable") {
+      // Auto mode: don't pause — accept the turn immediately.
+      if (autoSpectate) {
+        ws.send(JSON.stringify({ type: "continue" }));
+        return;
+      }
+      // Step-by-step mode — inline editing: the just-rendered monologue
+      // and bubbles become directly editable in place (like editing a
+      // message on other chat apps). Click any text, modify, continue.
+      const inners = [...chat.querySelectorAll(":scope > .inner")];
+      const innerDiv = inners[inners.length - 1] || null;
+      const stEl = innerDiv ? innerDiv.querySelector(".st") : null;
+      const thEl = innerDiv ? innerDiv.querySelector("div:not(.st)") : null;
+      const nBubbles = msg.reply.split("\n").filter(b => b.trim()).length;
+      // Guard 0: slice(-0) is slice(0), which would make EVERY bubble in
+      // the chat editable and send the whole transcript back as this turn.
+      const bubbleEls = nBubbles
+        ? [...chat.querySelectorAll(":scope > .bubble")].slice(-nBubbles)
+        : [];
+
+      const editables = [stEl, thEl, ...bubbleEls].filter(Boolean);
+      setEditable(editables, true);
+
+      const bar = document.createElement("div");
+      bar.className = "continue-bar";
+      const contBtn = document.createElement("button");
+      contBtn.textContent = "continue ▶";
+      const hint = document.createElement("span");
+      hint.className = "hint";
+      hint.textContent = "you can edit the messages above before continuing";
+      bar.append(contBtn, hint);
+      chat.append(bar);
+      chat.scrollTop = chat.scrollHeight;
+
+      // Teardown shared by finalize (send) and cancel (no send): revert
+      // the editable elements and remove the continue bar.
+      const teardown = () => {
+        finishEditing = null;
+        cancelEditing = null;
+        setEditable(editables, false);
+        bar.remove();
+      };
+      const finalize = () => {
+        const newState = stEl ? cleanText(stEl.textContent) : msg.state;
+        const newThoughts = thEl ? cleanText(thEl.textContent) : msg.thoughts;
+        const newReply = bubbleEls.length
+          ? bubbleEls.map(b => cleanText(b.textContent)).join("\n")
+          : msg.reply;
+        teardown();
+        if (!ws || ws.readyState !== 1) return;  // session already gone
+        const changed = newState !== msg.state
+          || newThoughts !== msg.thoughts || newReply !== msg.reply;
+        ws.send(JSON.stringify(changed
+          ? { type: "edit", who: msg.who, state: newState,
+              thoughts: newThoughts, reply: newReply }
+          : { type: "continue" }));
+      };
+      contBtn.onclick = finalize;
+      finishEditing = finalize;  // lets the mode toggle finalize mid-pause
+      cancelEditing = teardown;  // lets "ended"/close clean up the pause UI
+    } else if (msg.type === "ended") {
+      typing.textContent = "";
+      // Tear down an open edit pause: otherwise the bubbles stay
+      // editable and the orphaned "continue" button would send into a
+      // closed socket.
+      if (cancelEditing) cancelEditing();
+      clearReplyEditing();
+      add("sys", "chat ended: " + msg.reason);
+      setEnabled(false);
+      stopWatch.style.display = "none";
+      modeToggle.style.display = "none";
+    }
+  };
+  ws.onclose = () => {
+    statusEl.textContent = "disconnected";
+    setEnabled(false);
+    if (cancelEditing) cancelEditing();
+    clearReplyEditing();
+  };
+}
+
+form.onsubmit = (e) => {
+  e.preventDefault();
+  const text = input.value.trim();
+  if (!text || !ws || ws.readyState !== 1) return;
+  // Sending ends the last reply's edit window. An open edit is applied
+  // first (it reaches the server before the message, so the persona
+  // answers knowing what it "said").
+  if (replyEditor) replyEditor.save();
+  clearReplyEditing();
+  add("me", text);
+  ws.send(JSON.stringify({ type: "message", text }));
+  input.value = "";
+  setEnabled(false);   // one message at a time, wait for the reply
+};
+
+openPicker();
+</script>
+</body>
+</html>

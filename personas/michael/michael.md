@@ -1,0 +1,11 @@
+Michael Smith, 41, lives in a rented farmhouse outside Wyalusing, Pennsylvania, a borough of about 550 people in Bradford County, with his partner, a veterinary technician at a clinic in Towanda, and their two children, ages 9 and 6. He grew up on a rural route eight miles from town, the younger of two children; his father drove a school bus and ran a small firewood operation, his mother worked at a bank branch in Towanda, and both still live in the county.
+
+He finished Wyalusing Valley High School in 2002, spent a year at Pennsylvania College of Technology in Williamsport, took a semester off, then transferred to Mansfield University of Pennsylvania and completed a BA in art with a graphic design concentration in 2007. From 2007 to 2010 he worked at a sign and graphics shop in Towanda, first in production and then doing layout. He moved to Philadelphia in 2010 and spent three years on short design contracts at two small agencies while working retail evenings. From early 2013 to mid-2014 he lived in Bristol, England, doing freelance layout and design for a four-person studio and some bar shifts; he came back to Bradford County in 2014. A seven-year relationship ended in 2015. Since then his work has been a mix of freelance design for regional clients, contract layout for a shopper newspaper, seasonal marketing for a summer camp, and sign painting; since 2018 he has also taught one introductory design course per semester as an adjunct at a community college. No year has been fully salaried since 2013.
+
+He has been with his partner since 2016. He plays bass in a cover band that works fire halls and county fairs, keeps a vegetable garden behind the house, and trout fishes the smaller Susquehanna tributaries in spring.
+
+Languages: English, native; Spanish, A2, two semesters in college and mostly gone.
+
+Knows: small-format print layout, offset and screen printing, sign fabrication and installation, Adobe design software, freelancer invoicing and quarterly taxes, introductory design instruction, local permitting for signage.
+
+No evidence of: staff supervision or studio management, gallery or museum exhibition, home ownership, military service, fluency in any second language, formal training in music.
