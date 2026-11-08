@@ -1,7 +1,8 @@
 """The development pipeline: persona v0.1 -> chat-ready persona.
 
 Shared by both persona sources (cv_parser.build_persona_from_cv and
-random_persona.build_random_persona): interview the v0.1 root in the
+random_persona.build_random_persona): ask the v0.1 root what it looks
+like and draw its portrait (appearance.py), interview it in the
 INTERVIEW scenario, then enrich it into a new folder and calibrate its
 voice against stranger chats (enrich.enrich_persona). resume_development
 finishes a root whose run died or was stopped.
@@ -16,7 +17,9 @@ from loguru import logger
 from ..chat.engine import Persona
 from ..config import CreationConfig
 from ..llm.core import LLM
+from ..llm.images import ImageModel
 from ..persona.spec import find_enriched_personas, load_persona
+from .appearance import describe_appearance, draw_portrait
 from .enrich import enrich_persona
 from .interviewer import Interviewer
 
@@ -27,8 +30,9 @@ def develop_persona(
     *,
     creation: CreationConfig,
     max_turns: int | None = None,
+    image_model: ImageModel | None = None,
 ) -> Path:
-    """Development pipeline: persona v0.1 -> interviewed, enriched,
+    """Development pipeline: persona v0.1 -> looks, interviewed, enriched,
     voice-calibrated (when another persona exists to text), chat-ready.
     Source-agnostic: works on any root persona folder, whether it came
     from a CV or was generated from scratch.
@@ -36,17 +40,21 @@ def develop_persona(
     Returns the YAML config path of the ENRICHED persona folder. The root
     v0.1 folder is kept as the lineage parent but is not meant for chatting.
     `max_turns` (interview questions) defaults to
-    creation.interview_questions.
+    creation.interview_questions. With an `image_model`, the persona also
+    gets a passport photo, drawn from its looks (see appearance.py).
 
-    If the run fails or is stopped, the root folder (with its interview
-    transcript, once there is one) stays on disk and the log says how to
-    resume it (see resume_development).
+    If the run fails or is stopped, the root folder (with its looks and
+    interview transcript, once there are some) stays on disk and the log
+    says how to resume it (see resume_development).
     """
     config_path = Path(config_path)
     if max_turns is None:
         max_turns = creation.interview_questions
     try:
-        return _develop(llm, config_path, max_turns=max_turns, creation=creation)
+        return _develop(
+            llm, config_path, max_turns=max_turns, creation=creation,
+            image_model=image_model,
+        )
     except BaseException:
         logger.warning(
             f"{config_path.parent.name} was not finished; resume it with "
@@ -57,8 +65,20 @@ def develop_persona(
 
 
 def _develop(
-    llm: LLM, config_path: Path, *, max_turns: int, creation: CreationConfig
+    llm: LLM,
+    config_path: Path,
+    *,
+    max_turns: int,
+    creation: CreationConfig,
+    image_model: ImageModel | None,
 ) -> Path:
+    # The looks first, into the v0.1 core: the interview and every later
+    # stage see the face the portrait shows. A resumed run keeps the
+    # looks and the portrait it already has.
+    looks = describe_appearance(llm, config_path)
+    if image_model is not None:
+        draw_portrait(image_model, config_path, looks)
+
     # Interview against the v0.1 persona. If a transcript already exists
     # in the folder (an earlier run that died after the interview), reuse
     # it instead of paying for a new one.
@@ -96,10 +116,16 @@ def _develop(
     return enriched_config
 
 
-def resume_development(llm: LLM, root_config: Path, *, creation: CreationConfig) -> Path:
+def resume_development(
+    llm: LLM,
+    root_config: Path,
+    *,
+    creation: CreationConfig,
+    image_model: ImageModel | None = None,
+) -> Path:
     """Finish a v0.1 root whose creation run died or was stopped.
 
-    Runs develop_persona on the root: it reuses the root's saved
+    Runs develop_persona on the root: it reuses the root's looks and saved
     interview transcript if the run got that far, then enriches and
     calibrates. Refuses a root that was already developed (a second run
     would create a duplicate person); calibrate or rebuild the enriched
@@ -114,4 +140,4 @@ def resume_development(llm: LLM, root_config: Path, *, creation: CreationConfig)
                 f"instead (command line: bot-roulette enrich {cfg} "
                 "[--rebuild])"
             )
-    return develop_persona(llm, root_config, creation=creation)
+    return develop_persona(llm, root_config, creation=creation, image_model=image_model)

@@ -55,6 +55,9 @@ def home(tmp_path, monkeypatch):
     monkeypatch.delenv("MODEL", raising=False)
     monkeypatch.delenv("LLM_BASE_URL", raising=False)
     monkeypatch.delenv("LLM_API_KEY", raising=False)
+    monkeypatch.delenv("IMAGE_MODEL", raising=False)
+    monkeypatch.delenv("IMAGE_BASE_URL", raising=False)
+    monkeypatch.delenv("IMAGE_API_KEY", raising=False)
     return SimpleNamespace(
         path=tmp_path,
         anna_root=_persona(personas, "anna", "Anna", "none", False),

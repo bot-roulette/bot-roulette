@@ -1,7 +1,9 @@
+import base64
+
 import httpx
 import pytest
 
-from bot_roulette.llm import openrouter
+from bot_roulette.llm import ImageModel, generate_image, images, openrouter
 from bot_roulette.llm.openrouter import (
     OpenRouterUnavailable,
     catalog_id,
@@ -82,3 +84,16 @@ def test_unreachable_openrouter_is_not_a_verdict(openrouter_api):
         check_api_key("sk-or-v1-good")
     with pytest.raises(OpenRouterUnavailable):
         check_model("x/y")
+
+
+def test_an_image_comes_back_as_bytes_and_a_file_extension(monkeypatch):
+    answers = iter([
+        httpx.Response(200, json={"data": [{"b64_json": base64.b64encode(b"png").decode()}]}),
+        httpx.Response(402, json={"error": {"message": "Insufficient credits"}}),
+    ])
+    monkeypatch.setattr(images.httpx, "post", lambda url, **kwargs: next(answers))
+    model = ImageModel.openrouter(api_key=lambda: "sk-or-v1-good", model=lambda: "img/model")
+    # No media type: the extension of the format most models answer in.
+    assert generate_image(model, "a face") == (b"png", "png")
+    with pytest.raises(RuntimeError, match="HTTP 402.*Insufficient credits"):
+        generate_image(model, "a face")

@@ -62,6 +62,12 @@
   #core-text, #scenario-text { white-space: pre-wrap; font-size: 13px; color: var(--dim);
                line-height: 1.5; }
   #core-inner h2 { font-size: 14px; margin: 18px 0 8px; color: var(--text); }
+  #core-portraits { display: flex; gap: 12px; margin-bottom: 14px; }
+  #core-portraits:empty { display: none; }
+  #core-portraits img { display: block; width: 120px; aspect-ratio: 3 / 4;
+                        object-fit: cover; border-radius: 8px; }
+  #core-portraits figcaption { color: var(--dim); font-size: 12px; text-align: center;
+                               margin-top: 4px; }
   #core-close, #picker-close, #settings-open, #settings-close { background: var(--them); padding: 4px 10px; font-size: 13px; }
 
   /* persona picker: full-screen */
@@ -98,6 +104,10 @@
   #persona-preview { flex: 1; overflow-y: auto; padding: 20px 24px; min-width: 0; }
   #preview-placeholder { color: var(--dim); font-size: 14px; margin-top: 40px; text-align: center; }
   #preview-name { font-size: 20px; margin-bottom: 4px; }
+  #preview-head { display: flex; gap: 18px; align-items: flex-start; }
+  #preview-main { flex: 1; min-width: 0; }
+  #preview-portrait { flex: none; width: min(120px, 30%); aspect-ratio: 3 / 4;
+                      object-fit: cover; border-radius: 8px; margin-bottom: 18px; }
   #preview-actions { margin: 14px 0 18px; display: flex; gap: 8px; align-items: center; }
   #delete-persona { margin-left: auto; background: transparent; color: #e07070;
                     border: 1px solid #5a3030; }
@@ -221,9 +231,14 @@
     <div id="persona-preview">
       <div id="preview-placeholder">select a persona to see their description</div>
       <div id="preview-content" style="display:none">
-        <h1 id="preview-name"></h1>
-        <div id="preview-actions"><button id="start-chat">chat with this person</button><button id="spectate" class="tool">👀 watch two personas chat →</button><button id="delete-persona" title="permanently delete this persona" disabled>🗑 delete</button></div>
-        <div id="chat-list"></div>
+        <div id="preview-head">
+          <img id="preview-portrait" alt="" hidden>
+          <div id="preview-main">
+            <h1 id="preview-name"></h1>
+            <div id="preview-actions"><button id="start-chat">chat with this person</button><button id="spectate" class="tool">👀 watch two personas chat →</button><button id="delete-persona" title="permanently delete this persona" disabled>🗑 delete</button></div>
+            <div id="chat-list"></div>
+          </div>
+        </div>
         <div id="preview-core"></div>
       </div>
     </div>
@@ -318,6 +333,7 @@
 <div id="core-panel">
   <div id="core-inner">
     <h1><span id="core-name"></span><button id="core-close">close</button></h1>
+    <div id="core-portraits"></div>
     <div id="core-text"></div>
     <h2>PAIRED scenario</h2>
     <div id="scenario-text"></div>
@@ -341,6 +357,7 @@ const change = document.getElementById("change");
 const corePanel = document.getElementById("core-panel");
 const coreName = document.getElementById("core-name");
 const coreText = document.getElementById("core-text");
+const corePortraits = document.getElementById("core-portraits");
 const scenarioText = document.getElementById("scenario-text");
 
 const picker = document.getElementById("picker");
@@ -352,6 +369,7 @@ const spectateCancel = document.getElementById("spectate-cancel");
 const previewPlaceholder = document.getElementById("preview-placeholder");
 const previewContent = document.getElementById("preview-content");
 const previewName = document.getElementById("preview-name");
+const previewPortrait = document.getElementById("preview-portrait");
 const previewCore = document.getElementById("preview-core");
 const chatList = document.getElementById("chat-list");
 const startChat = document.getElementById("start-chat");
@@ -548,6 +566,27 @@ who.onclick = () => corePanel.classList.add("open");
 document.getElementById("core-close").onclick = () => corePanel.classList.remove("open");
 corePanel.onclick = (e) => { if (e.target === corePanel) corePanel.classList.remove("open"); };
 
+const portraitUrl = (id) => `/personas/${encodeURIComponent(id)}/portrait`;
+
+// Never in the chat itself: in the scenario, the app has no photos.
+function setCorePortraits(ids) {
+  corePortraits.replaceChildren(...ids.flatMap(id => {
+    const p = personas.find(p => p.id === id);
+    if (!p || !p.portrait) return [];
+    const figure = document.createElement("figure");
+    const img = document.createElement("img");
+    img.src = portraitUrl(id);
+    img.alt = `portrait of ${p.name}`;
+    figure.append(img);
+    if (ids.length > 1) {
+      const caption = document.createElement("figcaption");
+      caption.textContent = p.name;
+      figure.append(caption);
+    }
+    return [figure];
+  }));
+}
+
 function add(cls, text) {
   const div = document.createElement("div");
   div.className = cls === "sys" ? "sys" : "bubble " + cls;
@@ -623,6 +662,11 @@ function selectPersona(id) {
   spectateBtn.title = ready ? "" : "voice calibration has not finished for this persona";
   previewName.textContent = p.name;
   previewCore.textContent = p.core;
+  previewPortrait.hidden = !p.portrait;
+  if (p.portrait) {
+    previewPortrait.src = portraitUrl(p.id);
+    previewPortrait.alt = `portrait of ${p.name}`;
+  }
   deleteBtn.disabled = !cancellationAllowed;
   deleteBtn.title = cancellationAllowed
     ? "permanently delete this persona"
@@ -1358,6 +1402,7 @@ function connect(personaId, personaBId, chatId) {
   coreName.textContent = "";
   coreText.textContent = "";
   scenarioText.textContent = "";
+  setCorePortraits([personaId, personaBId].filter(Boolean));
   if (ws) { ws.onclose = null; ws.close(); }
   chatActive = true;
   lastSpeaker = null;

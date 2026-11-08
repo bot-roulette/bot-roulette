@@ -32,7 +32,7 @@ def test_an_access_code_guards_every_page_and_the_chat(web, monkeypatch):
     monkeypatch.setattr(web.server, "ACCESS_CODE", "caffè")
     client = TestClient(web.server.app)
     for headers in ({}, basic("wrong"), {"Authorization": "Basic %%%"}, {"Authorization": "Bearer x"}):
-        for path in ("/", "/personas", "/settings"):
+        for path in ("/", "/personas", "/settings", "/personas/monica_20260907_060117/portrait"):
             r = client.get(path, headers=headers)
             assert r.status_code == 401
             assert r.headers["www-authenticate"].startswith('Basic realm="bot-roulette"')
@@ -55,6 +55,22 @@ def test_unconfigured_state_is_reported(web):
     assert {p["id"] for p in personas["personas"]} == {
         "francesca_20260907_064108", "monica_20260907_060117", "simona_20260906_225636",
     }
+
+
+def test_the_picker_gets_a_persona_s_portrait(web):
+    portrait = web.home / "personas" / "monica_20260907_060117" / "portrait.jpg"
+    portrait.write_bytes(b"jpeg bytes")
+    try:
+        listed = {p["id"]: p["portrait"] for p in web.client.get("/personas").json()["personas"]}
+        assert listed["monica_20260907_060117"] is True
+        assert listed["simona_20260906_225636"] is False
+        r = web.client.get("/personas/monica_20260907_060117/portrait")
+        assert (r.status_code, r.headers["content-type"], r.content) == (200, "image/jpeg", b"jpeg bytes")
+        # No portrait, no such persona, or not a persona at all: nothing to serve.
+        for persona_id in ("simona_20260906_225636", "nobody", "..%2Fconfig.yaml", ".."):
+            assert web.client.get(f"/personas/{persona_id}/portrait").status_code == 404
+    finally:
+        portrait.unlink()
 
 
 def test_generation_options_are_the_background_lists(web):
@@ -95,6 +111,43 @@ def test_generation_request_forwards_identity_and_fixed_traits_to_the_job(web, m
     # Listed values arrive as they are, your own words tidied.
     assert captured["fixed_traits"] == {**fixed, "settlement": "a fishing village near Bari"}
     assert (captured["identity"].first_name, captured["identity"].chat_language) == ("Hiroshi", "Italian")
+    assert captured["image_model"] is None  # .env names no image model
+
+
+def test_new_personas_get_a_portrait_when_env_names_an_image_model(web, monkeypatch):
+    monkeypatch.setattr(web.server, "is_configured", lambda: True)
+    monkeypatch.setattr(web.server, "_start_job", lambda kind, run: run() or "test-job")
+    captured = {}
+    monkeypatch.setattr(
+        web.server, "build_random_persona", lambda llm, **kwargs: captured.update(kwargs)
+    )
+    monkeypatch.setenv("IMAGE_MODEL", "img/model")
+    monkeypatch.setenv("OPENROUTER_API_KEY", web.good_key)
+    assert web.client.post("/personas/generate", json={"identity": IDENTITY}).status_code == 200
+    image_model = captured["image_model"]
+    assert (image_model.model, image_model.api_key()) == ("img/model", web.good_key)
+
+
+def test_portraits_can_come_from_your_own_image_server(web, monkeypatch):
+    monkeypatch.setattr(web.server, "is_configured", lambda: True)
+    monkeypatch.setattr(web.server, "_start_job", lambda kind, run: run() or "test-job")
+    captured = {}
+    monkeypatch.setattr(
+        web.server, "build_random_persona", lambda llm, **kwargs: captured.update(kwargs)
+    )
+    monkeypatch.setenv("IMAGE_MODEL", "z-image-turbo")
+    monkeypatch.setenv("IMAGE_BASE_URL", "http://127.0.0.1:8888/v1")
+    monkeypatch.setenv("IMAGE_API_KEY", "img-key")
+    monkeypatch.setenv("OPENROUTER_API_KEY", web.good_key)
+    assert web.client.post("/personas/generate", json={"identity": IDENTITY}).status_code == 200
+    image_model = captured["image_model"]
+    # Its own key: never the OpenRouter one.
+    assert (image_model.base_url, image_model.model, image_model.api_key) == (
+        "http://127.0.0.1:8888/v1", "z-image-turbo", "img-key"
+    )
+    monkeypatch.setenv("IMAGE_BASE_URL", "127.0.0.1:8888/v1")
+    with pytest.raises(RuntimeError, match="IMAGE_BASE_URL in .env: not an http"):
+        web.server.make_image_model()
 
 
 @pytest.mark.parametrize(

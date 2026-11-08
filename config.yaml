@@ -6,7 +6,9 @@
 # random_personas: by both (they are the library's settings).
 #
 # Not here: the model, where it runs (OpenRouter, or your own
-# OpenAI-compatible server: LLM_BASE_URL) and its key, the optional
+# OpenAI-compatible server: LLM_BASE_URL) and its key, the image model
+# that draws new personas' portraits (IMAGE_MODEL, and IMAGE_BASE_URL
+# for your own image server), the optional
 # access code and the on/off switches (GENERATION_ALLOWED,
 # CANCELLATION_ALLOWED, CHAT_MEMORY_ALLOWED).
 # Those live in .env (the model, where it runs and the key can also be

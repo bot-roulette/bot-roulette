@@ -1,0 +1,318 @@
+[
+  {
+    "role": "interviewer",
+    "content": "Hello, I’m a researcher conducting interviews about people’s lives. There are no right or wrong answers, and you can skip anything you’d rather not discuss. I’d love to start by hearing about your life. Could you tell me your story, starting wherever you’d like?"
+  },
+  {
+    "role": "respondent",
+    "content": "Sono cresciuta a Terni, una vita abbastanza normale. Dopo le superiori mi sono trasferita a Perugia, a 24 anni, per studiare. All’inizio lavoravo un po’ dove capitava: turni stagionali alla cassa di un supermercato, poi pulizie e qualche volta in un bar.\nAdesso vivo qui con mia zia e studio part-time scienze dell’educazione. Faccio anche qualche turno al bar, quando c’è bisogno. Non è un percorso molto lineare nel senso del lavoro, però niente di particolare… più che altro ho cercato di andare avanti un passo alla volta."
+  },
+  {
+    "role": "interviewer",
+    "content": "Grazie per averlo raccontato. Sono una ricercatrice e raccolgo storie di vita; non ci sono risposte giuste o sbagliate e puoi saltare qualsiasi domanda. Hai detto che ti sei trasferita a Perugia a 24 anni per studiare: cosa ti ha portata a fare quel passo?"
+  },
+  {
+    "role": "respondent",
+    "content": "Volevo continuare a studiare, e Perugia mi sembrava una possibilità concreta: era abbastanza vicina a Terni, ma comunque un cambiamento. Non c’è stato un episodio preciso che mi ha spinta, credo sentissi che era il momento di provare a costruirmi una strada mia. Poi la vita non è andata proprio tutta secondo i piani, ma sono rimasta qui."
+  },
+  {
+    "role": "interviewer",
+    "content": "Quando dici che la vita non è andata tutta secondo i piani, a cosa pensi in particolare?"
+  },
+  {
+    "role": "respondent",
+    "content": "Non penso a un evento preciso. Più che altro immaginavo che avrei finito gli studi prima e trovato un lavoro stabile, invece ho alternato periodi di lavoro e studio e ci sto mettendo più tempo. Però non è che sia successo qualcosa di particolare: le cose sono andate un po’ alla volta, in modo meno ordinato di quanto pensassi."
+  },
+  {
+    "role": "interviewer",
+    "content": "Capisco: più un percorso fatto di aggiustamenti che un singolo evento decisivo. In questi anni a Perugia, che cosa ti ha fatto scegliere di restare?"
+  },
+  {
+    "role": "respondent",
+    "content": "Credo soprattutto che, a un certo punto, la mia vita fosse già qui: gli studi, il lavoro, mia zia. E Perugia mi piace, è una città in cui mi trovo bene. Non ho mai avuto un motivo forte per andarmene, quindi sono rimasta."
+  },
+  {
+    "role": "interviewer",
+    "content": "Hai detto che ormai la tua vita è a Perugia, tra studio, lavoro e tua zia. Com’è una tua giornata tipo, da quando ti svegli a quando vai a dormire?"
+  },
+  {
+    "role": "respondent",
+    "content": "Dipende dai turni. Se non lavoro, mi alzo senza una gran fretta, faccio colazione e magari studio un po’ per l’università o sbrigo qualche faccenda in casa. Pranziamo con mia zia, spesso cucino qualcosa di semplice.\nNel pomeriggio posso fare una passeggiata o leggere; se invece ho il turno, la giornata gira intorno a quello. La sera di solito sto tranquilla a casa. Non ho orari sempre uguali."
+  },
+  {
+    "role": "interviewer",
+    "content": "Hai detto che quando lavori la giornata gira intorno al turno. Mi racconti com’è stata una giornata recente in cui hai lavorato, dall’inizio del turno fino a quando sei tornata a casa?"
+  },
+  {
+    "role": "respondent",
+    "content": "Non ricordo il giorno esatto, ma di recente ho fatto un turno di mattina. Sono arrivata e mi sono messa subito al banco: caffè, cappuccini, servire le persone e poi pulire un po’ tra un cliente e l’altro. C’era movimento, ma niente di speciale.\nQuando ho finito ero stanca, soprattutto in piedi tutto il tempo. Sono tornata a casa, mi sono cambiata e ho mangiato qualcosa; poi mi sono presa un po’ di calma."
+  },
+  {
+    "role": "interviewer",
+    "content": "Hai detto che eri stanca soprattutto per essere stata in piedi tutto il turno. Com’è per te il lavoro al bar, tra le cose che ti piacciono e quelle che pesano di più?"
+  },
+  {
+    "role": "respondent",
+    "content": "Mi piace il lato pratico: preparare le cose, tenere il banco in ordine, avere un po’ di movimento e scambiare due parole con i clienti. Se c’è un’atmosfera tranquilla, il tempo passa anche meglio.\nLa parte più pesante è stare in piedi e quando si accumulano tante richieste tutte insieme. E poi i turni cambiano, quindi non sempre riesco a organizzarmi come vorrei."
+  },
+  {
+    "role": "interviewer",
+    "content": "Hai accennato agli studi in scienze dell’educazione e al fatto che li porti avanti part-time. Che cosa ti ha attirata verso questo percorso?"
+  },
+  {
+    "role": "respondent",
+    "content": "Mi attirava l’idea di capire meglio come le persone imparano e crescono, soprattutto da piccole. Non è che avessi già un piano preciso per un lavoro: mi sembrava un percorso interessante e vicino a cose che mi stanno a cuore. Lo seguo part-time, quindi vado con calma e vedo strada facendo."
+  },
+  {
+    "role": "interviewer",
+    "content": "Hai detto che il percorso è vicino a cose che ti stanno a cuore. C’è stata un’esperienza o una persona che ti ha fatto interessare in modo particolare alla crescita e all’apprendimento dei bambini?"
+  },
+  {
+    "role": "respondent",
+    "content": "Non c’è stata una persona o un’esperienza precisa che mi abbia fatto decidere. È un interesse che è cresciuto un po’ alla volta: mi incuriosisce come i bambini imparano e come l’ambiente intorno a loro li aiuta. Non ho esperienza professionale con i bambini, per ora è soprattutto una cosa che sto studiando."
+  },
+  {
+    "role": "interviewer",
+    "content": "Grazie, è chiaro: per ora è soprattutto un interesse che stai esplorando attraverso lo studio. Visto che alterni l’università ai turni al bar, com’è per te riuscire a far quadrare le spese e organizzarti economicamente?"
+  },
+  {
+    "role": "respondent",
+    "content": "Con i turni irregolari devo stare un po’ attenta: non sempre so in anticipo quanto lavorerò, quindi cerco di tenere le spese semplici e di non contare su soldi che magari non sono ancora arrivati. Condividere casa con mia zia rende la gestione quotidiana più sostenibile. Non ho un sistema particolarmente elaborato, faccio attenzione e mi adatto mese per mese."
+  },
+  {
+    "role": "interviewer",
+    "content": "Hai detto che vivere con tua zia rende le spese più sostenibili. Come vi organizzate, in pratica, per le spese di casa?"
+  },
+  {
+    "role": "respondent",
+    "content": "Ci dividiamo le spese quotidiane in modo abbastanza pratico: ci alterniamo per la spesa e cerchiamo di contribuire alle cose di casa. Non abbiamo un sistema preciso con conti e percentuali, ci regoliamo un po’ in base a quello che serve."
+  },
+  {
+    "role": "interviewer",
+    "content": "Quando capita una spesa imprevista, come fai di solito a gestirla, visto che i turni e le entrate possono variare?"
+  },
+  {
+    "role": "respondent",
+    "content": "Dipende da quanto è urgente. Cerco prima di capire se posso rimandare qualche altra spesa e mi organizzo con quello che ho in quel momento. Se riguarda la casa, ne parlo anche con mia zia. Per fortuna non capita continuamente, ma con entrate variabili bisogna un po’ adattarsi."
+  },
+  {
+    "role": "interviewer",
+    "content": "Hai parlato di tua zia come di una persona con cui condividi la casa e ti organizzi. Che ruolo ha nella tua vita, al di là della gestione quotidiana?"
+  },
+  {
+    "role": "respondent",
+    "content": "È una presenza familiare importante, anche se non saprei descriverla con grandi parole. Condividiamo la casa e ci facciamo compagnia; sapere che c’è, nella quotidianità, per me conta."
+  },
+  {
+    "role": "interviewer",
+    "content": "Hai detto che vi fate compagnia e che sapere che c’è conta per te. Mi racconti un momento recente, anche semplice, in cui questa presenza ti ha fatto piacere?"
+  },
+  {
+    "role": "respondent",
+    "content": "Una sera di recente ero tornata stanca dal turno e ci siamo sedute a tavola insieme. Abbiamo mangiato qualcosa di semplice e chiacchierato un po’. Non ricordo nemmeno di cosa, ma mi ha fatto piacere non passare la serata da sola."
+  },
+  {
+    "role": "interviewer",
+    "content": "Quella cena semplice sembra essere stata un momento di compagnia importante. Ripensando alla tua famiglia e alla tua vita a Terni, chi sono state le persone più importanti per te mentre crescevi?"
+  },
+  {
+    "role": "respondent",
+    "content": "Non saprei indicare una persona sola come la più importante. Sono cresciuta a Terni con la mia famiglia, ma non c’è un episodio o una figura particolare che mi venga in mente come decisiva. Mia zia, che è dalla parte di mia madre, è rimasta una presenza familiare nella mia vita."
+  },
+  {
+    "role": "interviewer",
+    "content": "Capisco, non c’è una sola figura che spicca come decisiva. Oltre a tua zia, chi fa parte oggi della tua cerchia più vicina?"
+  },
+  {
+    "role": "respondent",
+    "content": "Oltre a mia zia, ci sono alcune persone che conosco tra il lavoro e l’università, ma non direi di avere una cerchia molto ampia o sempre presente. Ogni tanto vedo qualche amica, però gran parte della mia quotidianità è abbastanza tranquilla."
+  },
+  {
+    "role": "interviewer",
+    "content": "Hai detto che ogni tanto vedi qualche amica. Com’è di solito il tempo che passate insieme?"
+  },
+  {
+    "role": "respondent",
+    "content": "Di solito prendiamo un caffè o facciamo due passi e chiacchieriamo. Niente di organizzato con grande anticipo, ci si sente quando capita e gli orari combaciano."
+  },
+  {
+    "role": "interviewer",
+    "content": "Visto che vivere con tua zia è una parte importante della tua quotidianità, mi racconti com’è la casa e come sei arrivata a vivere lì con lei?"
+  },
+  {
+    "role": "respondent",
+    "content": "È una casa normale, con le nostre cose e le abitudini di tutti i giorni. Non saprei indicare un momento preciso in cui abbiamo deciso di vivere insieme. Io sono arrivata a Perugia per studiare e, col tempo, condividere casa con mia zia è diventato il modo in cui ci siamo organizzate."
+  },
+  {
+    "role": "interviewer",
+    "content": "Com’è il quartiere in cui vivi, e come ti trovi a viverci?"
+  },
+  {
+    "role": "respondent",
+    "content": "Mi trovo abbastanza bene. È un posto normale, con le cose di tutti i giorni a portata di mano. Non è una zona di cui sono particolarmente appassionata, ma ci sto bene e ormai mi è familiare."
+  },
+  {
+    "role": "interviewer",
+    "content": "Hai detto che la zona ormai ti è familiare. C’è un posto o una piccola abitudine del quartiere che senti particolarmente tua?"
+  },
+  {
+    "role": "respondent",
+    "content": "Forse il mio piccolo giro a piedi, quando ho voglia di staccare. Non è un posto speciale: faccio due passi per le strade vicine, quelle che ormai conosco."
+  },
+  {
+    "role": "interviewer",
+    "content": "Hai detto che quel giro a piedi ti aiuta a staccare. Cosa ti piace fare o notare mentre cammini per quelle strade?"
+  },
+  {
+    "role": "respondent",
+    "content": "Mi piace camminare senza dover arrivare da qualche parte. Guardo le vetrine, le persone che passano, magari noto se è cambiata la luce o se c’è bel tempo. Spesso ho la testa altrove, però torno a casa un po’ più leggera."
+  },
+  {
+    "role": "interviewer",
+    "content": "Hai detto che dopo una passeggiata torni a casa un po’ più leggera. In generale, come stai in questo periodo, sia fisicamente sia di umore?"
+  },
+  {
+    "role": "respondent",
+    "content": "Direi che sto abbastanza bene. Fisicamente mi capita di sentirmi stanca dopo un turno in piedi, ma niente di particolare. Di umore sono abbastanza tranquilla; ogni tanto penso agli studi e a come organizzarmi, però nel complesso va."
+  },
+  {
+    "role": "interviewer",
+    "content": "Hai detto che ogni tanto pensi a come organizzarti con gli studi. Quando quei pensieri diventano più presenti, cosa fai di solito per ritrovare un po’ di tranquillità?"
+  },
+  {
+    "role": "respondent",
+    "content": "Di solito provo a fare una cosa alla volta, magari sistemo quello che devo studiare e poi mi prendo una pausa. A volte leggo o esco a fare due passi. Non è una tecnica particolare, mi aiuta solo a rimettere un po’ d’ordine."
+  },
+  {
+    "role": "interviewer",
+    "content": "Hai detto che leggere e fare due passi ti aiutano a rimettere un po’ d’ordine. In questo periodo, che cosa senti che conta di più per te nella vita?"
+  },
+  {
+    "role": "respondent",
+    "content": "In questo periodo direi la tranquillità e sentire che sto andando avanti, anche piano. Vorrei continuare gli studi senza mettermi addosso troppa pressione, e stare bene con le persone che ho vicino. Le cose semplici, insomma."
+  },
+  {
+    "role": "interviewer",
+    "content": "Hai detto che per te contano la tranquillità e stare bene con le persone vicine. C’è una comunità, un gruppo o una pratica — religiosa, associativa o di altro tipo — che fa parte della tua vita o del tuo senso di appartenenza?"
+  },
+  {
+    "role": "respondent",
+    "content": "Non c’è una comunità o una pratica specifica che faccia parte della mia vita. Direi che mi sento più legata alle persone vicine e a Perugia, ormai, attraverso le abitudini di tutti i giorni."
+  },
+  {
+    "role": "interviewer",
+    "content": "Hai detto che ti senti legata a Perugia attraverso le abitudini di tutti i giorni. C’è qualcosa di questa città che ti fa sentire particolarmente a casa?"
+  },
+  {
+    "role": "respondent",
+    "content": "Forse il fatto che ormai conosco i miei giri e le mie abitudini. Quando torno da una passeggiata o dal lavoro, tutto mi sembra familiare. Non è una cosa grandiosa, ma col tempo Perugia è diventata casa."
+  },
+  {
+    "role": "interviewer",
+    "content": "Perugia è diventata casa attraverso la familiarità dei tuoi giri e delle tue abitudini. Nei prossimi anni, ti immagini di restare lì o pensi che potresti trasferirti?"
+  },
+  {
+    "role": "respondent",
+    "content": "Per ora mi vedo restare a Perugia. Ho qui la mia vita e mi trovo bene; magari un giorno le cose cambieranno, ma al momento non sto pensando a un trasferimento."
+  },
+  {
+    "role": "interviewer",
+    "content": "Restando a Perugia, come speri che siano la tua vita e il tuo percorso di studi o di lavoro tra cinque anni?"
+  },
+  {
+    "role": "respondent",
+    "content": "Tra cinque anni spero di aver concluso il percorso di studi, o almeno di essere arrivata alla fine. Mi piacerebbe anche avere un lavoro un po’ più stabile, magari in un ambito vicino a quello che studio. Non ho un piano preciso, però spero di sentirmi ancora a casa qui e di aver fatto qualche passo avanti."
+  },
+  {
+    "role": "interviewer",
+    "content": "Hai detto che ti piacerebbe trovare un lavoro più stabile, magari vicino a ciò che studi. Che tipo di lavoro o ambiente ti immagini quando pensi a questo?"
+  },
+  {
+    "role": "respondent",
+    "content": "Mi immagino qualcosa in cui ci sia un contatto con le persone, magari in un contesto educativo, ma è ancora molto generico. Non avendo esperienza professionale in quel campo, per ora conosco soprattutto quello che studio. Mi piacerebbe trovare un ambiente sereno e un po’ più stabile dei turni che faccio adesso."
+  },
+  {
+    "role": "interviewer",
+    "content": "Hai detto che per ora conosci soprattutto l’ambito educativo attraverso lo studio. C’è qualcosa che ti piacerebbe fare per capire meglio com’è lavorare in quel campo?"
+  },
+  {
+    "role": "respondent",
+    "content": "Mi piacerebbe fare un’esperienza pratica, magari un tirocinio se il percorso lo prevede, e vedere com’è la quotidianità in un contesto educativo. Per ora sto andando avanti con gli studi, senza aver già organizzato qualcosa di preciso."
+  },
+  {
+    "role": "interviewer",
+    "content": "Un tirocinio potrebbe darti un’idea concreta della vita quotidiana in quel settore. Guardando al tuo percorso finora, c’è un momento o qualcosa che hai fatto di cui ti senti particolarmente orgogliosa?"
+  },
+  {
+    "role": "respondent",
+    "content": "Forse sono orgogliosa di aver continuato gli studi anche quando il lavoro e gli orari non erano molto regolari. Ci metto più tempo di quanto pensassi, ma non ho lasciato perdere. E anche essermi trasferita a Perugia, all’inizio, è stato un passo importante per me."
+  },
+  {
+    "role": "interviewer",
+    "content": "Hai nominato sia il trasferimento a Perugia sia il fatto di non aver lasciato gli studi. Ripensando a quando sei arrivata qui, che cosa ricordi di più di quel passaggio?"
+  },
+  {
+    "role": "respondent",
+    "content": "Non ricordo un momento preciso, più il passaggio in sé: lasciare Terni e cominciare a orientarmi in una città nuova, con gli studi da seguire e tante cose pratiche da sistemare. All’inizio era tutto un po’ più incerto; poi piano piano Perugia è diventata familiare."
+  },
+  {
+    "role": "interviewer",
+    "content": "Se potessi parlare con te stessa poco prima di trasferirti a Perugia, che cosa le diresti?"
+  },
+  {
+    "role": "respondent",
+    "content": "Le direi: “Non devi avere tutto sistemato subito. Avrai tempo per capire le cose, e piano piano questa città ti sembrerà casa.” Forse le direi anche di non mettersi tanta fretta."
+  },
+  {
+    "role": "interviewer",
+    "content": "È un consiglio gentile, soprattutto il ricordarti di non avere fretta. Guardando ai prossimi cinque anni, c’è qualcosa che ti preoccupa o che speri di riuscire a proteggere nella tua vita?"
+  },
+  {
+    "role": "respondent",
+    "content": "Mi preoccupa un po’ l’idea di non riuscire a trovare più stabilità, soprattutto nel lavoro, ma non ci penso ogni giorno. Spero di proteggere la serenità che ho e il tempo per le persone vicine, senza mettere tutta la vita in pausa per raggiungere un obiettivo."
+  },
+  {
+    "role": "interviewer",
+    "content": "Hai detto che vuoi proteggere la serenità e il tempo per le persone vicine. Nelle settimane con turni e studio, come riesci a riposarti e a prenderti cura di te?"
+  },
+  {
+    "role": "respondent",
+    "content": "Quando riesco, mi tengo un po’ di tempo senza impegni: leggo, cucino qualcosa con calma o faccio una passeggiata. Dopo un turno cerco soprattutto di sedermi e non correre subito a fare altro. Non sempre ci riesco, ma provo a lasciare qualche spazio vuoto nella settimana."
+  },
+  {
+    "role": "interviewer",
+    "content": "Hai parlato delle persone vicine e delle amiche che vedi ogni tanto. C’è una relazione sentimentale importante nella tua vita, oppure preferisci tenere questa parte privata?"
+  },
+  {
+    "role": "respondent",
+    "content": "Preferisco tenerla un po’ privata, almeno per ora. Non c’è niente di particolare, semplicemente è una parte che non mi viene spontaneo raccontare."
+  },
+  {
+    "role": "interviewer",
+    "content": "Va bene, grazie per avermelo detto; non serve parlarne. Restando sul quartiere, come ti senti rispetto alla sicurezza quando ti muovi nella zona, per esempio durante le tue passeggiate?"
+  },
+  {
+    "role": "respondent",
+    "content": "In generale mi sento abbastanza tranquilla nei giri che faccio di solito. Non è che ci pensi molto, però uso le normali attenzioni, soprattutto se è tardi o c’è poca gente."
+  },
+  {
+    "role": "interviewer",
+    "content": "Grazie. Prima di concludere, c’è qualcosa del tuo benessere o della tua salute quotidiana — per esempio il riposo o l’accesso alle cure — che per te è importante e che non è ancora emerso?"
+  },
+  {
+    "role": "respondent",
+    "content": "Non c’è niente di particolare che mi venga in mente. Il riposo può essere un po’ irregolare quando cambiano i turni, ma in generale sto bene. Per ora non ho altro da aggiungere su salute o cure."
+  },
+  {
+    "role": "interviewer",
+    "content": "Prima di salutarci, c’è qualcosa di importante della tua vita che non ti ho chiesto e che vorresti aggiungere?"
+  },
+  {
+    "role": "respondent",
+    "content": "Non credo ci sia altro di importante da aggiungere. Forse solo che, anche se la mia vita è abbastanza ordinaria, per me ha valore così com’è: fatta di studio, lavoro e piccole abitudini."
+  },
+  {
+    "role": "interviewer",
+    "content": "Grazie per aver condiviso la tua storia. Mi resta l’immagine di una vita costruita passo dopo passo, con valore nelle cose quotidiane e nelle persone vicine. Ti ringrazio per il tempo e la sincerità."
+  }
+]

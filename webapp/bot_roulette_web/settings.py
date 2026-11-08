@@ -18,6 +18,12 @@ the OpenRouter key is never sent anywhere but OpenRouter.
 system-wide variable with a generic name (MODEL is a common one, e.g. a
 laptop's model number) must not silently replace what .env — or the
 settings panel — says.
+
+IMAGE_MODEL, set in .env only (the panel doesn't show it), is the image
+model that draws new personas' portraits: on OpenRouter, with
+OPENROUTER_API_KEY, or on your own server that follows OpenAI's image
+API when IMAGE_BASE_URL is set (with IMAGE_API_KEY, if it needs a key).
+Without it, new personas get no portrait.
 """
 
 import os
@@ -26,7 +32,7 @@ import threading
 
 from dotenv import load_dotenv, set_key
 
-from bot_roulette import LLM
+from bot_roulette import LLM, ImageModel
 
 from .home import ENV_PATH
 
@@ -106,6 +112,24 @@ def make_llm() -> LLM:
         return _llm_on(server_url())
     except ValueError as e:
         raise RuntimeError(f"LLM_BASE_URL in .env: {e}") from None
+
+
+def make_image_model() -> ImageModel | None:
+    """The image model for new personas' portraits (IMAGE_MODEL), or None
+    when .env sets none: on your own server when IMAGE_BASE_URL is set,
+    else on OpenRouter, its key read at call time like the LLM's.
+    RuntimeError for a malformed IMAGE_BASE_URL."""
+    model = os.environ.get("IMAGE_MODEL", "").strip()
+    if not model:
+        return None
+    url = os.environ.get("IMAGE_BASE_URL", "").strip()
+    if not url:
+        return ImageModel.openrouter(api_key=current_api_key, model=model)
+    api_key = os.environ.get("IMAGE_API_KEY", "").strip()
+    try:
+        return ImageModel.openai_compatible(url, model=model, api_key=api_key)
+    except ValueError as e:
+        raise RuntimeError(f"IMAGE_BASE_URL in .env: {e}") from None
 
 
 _SETTINGS_LOCK = threading.Lock()

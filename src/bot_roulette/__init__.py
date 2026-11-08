@@ -21,7 +21,7 @@ Logging is off by default: call ``logger.enable("bot_roulette")``
 The whole public API is importable from here. Underneath, the library
 is split into areas, each building only on the ones listed before it:
 
-    llm/         the model: LLM, complete(), OpenRouter checks
+    llm/         the model: LLM, complete(), OpenRouter checks, ImageModel
     config.py    the settings persona creation needs, and their loader
     persona/     a persona folder (load_persona...) and its scenarios
     chat/        talking to a persona: Persona, judge, parsing, conversations
@@ -61,6 +61,7 @@ from .evaluation import build_dataset, evaluate_dataset, load_dataset
 from .llm import (
     LLM,
     Cancelled,
+    ImageModel,
     OpenRouterUnavailable,
     ServerUnavailable,
     UnusableOutput,
@@ -69,6 +70,7 @@ from .llm import (
     check_server_model,
     complete,
     extract_json,
+    generate_image,
     is_known_model,
     is_served_model,
     model_catalog,
@@ -97,6 +99,7 @@ __all__ = [
     "Config",
     "Conversation",
     "CreationConfig",
+    "ImageModel",
     "Judge",
     "OpenRouterUnavailable",
     "Persona",
@@ -124,6 +127,7 @@ __all__ = [
     "find_enriched_personas",
     "format_response",
     "generate_entry_story",
+    "generate_image",
     "is_known_model",
     "is_served_model",
     "live_paired_scenario",

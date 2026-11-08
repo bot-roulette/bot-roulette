@@ -109,6 +109,46 @@ def test_random_builds_the_persona_it_is_given(home, fake_llm, monkeypatch, caps
     assert captured["seed"] == 3
 
 
+def test_new_personas_get_a_portrait_when_env_names_an_image_model(home, fake_llm, monkeypatch, capsys):
+    fake_llm()
+    captured = {}
+    monkeypatch.setattr(cli, "build_random_persona", lambda llm, **kwargs: captured.update(kwargs))
+    assert run(RANDOM, capsys)[0] == 0
+    assert captured["image_model"] is None
+
+    env = home.path / ".env"
+    env.write_text("IMAGE_MODEL=img/model\n", encoding="utf-8")
+    code, _, _ = run(RANDOM, capsys)
+    assert "add OPENROUTER_API_KEY" in code and str(env) in code
+
+    env.write_text("IMAGE_MODEL=img/model\nOPENROUTER_API_KEY=sk-or-x\n", encoding="utf-8")
+    assert run(RANDOM, capsys)[0] == 0
+    image_model = captured["image_model"]
+    assert (image_model.model, image_model.api_key) == ("img/model", "sk-or-x")
+
+
+def test_portraits_can_come_from_your_own_image_server(home, fake_llm, monkeypatch, capsys):
+    fake_llm()
+    captured = {}
+    monkeypatch.setattr(cli, "build_random_persona", lambda llm, **kwargs: captured.update(kwargs))
+    env = home.path / ".env"
+    server = "IMAGE_MODEL=z-image-turbo\nIMAGE_BASE_URL=http://127.0.0.1:8888/v1\n"
+    env.write_text(server, encoding="utf-8")
+    assert run(RANDOM, capsys)[0] == 0  # no OpenRouter key needed
+    image_model = captured["image_model"]
+    assert (image_model.base_url, image_model.model, image_model.api_key) == (
+        "http://127.0.0.1:8888/v1", "z-image-turbo", ""
+    )
+
+    env.write_text(server + "OPENROUTER_API_KEY=sk-or-x\nIMAGE_API_KEY=img-key\n", encoding="utf-8")
+    assert run(RANDOM, capsys)[0] == 0
+    assert captured["image_model"].api_key == "img-key"  # never the OpenRouter key
+
+    env.write_text(server.replace("http://", ""), encoding="utf-8")
+    code, _, _ = run(RANDOM, capsys)
+    assert "IMAGE_BASE_URL" in code and str(env) in code
+
+
 @pytest.mark.parametrize(
     "argv, problem",
     [

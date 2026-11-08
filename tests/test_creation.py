@@ -3,6 +3,7 @@ import io
 import json
 import random
 
+import httpx
 import pytest
 import yaml
 from PIL import Image
@@ -15,6 +16,7 @@ from bot_roulette.creation import (
     develop_persona,
     resume_development,
 )
+from bot_roulette.creation.appearance import APPEARANCE_QUESTION, describe_appearance, draw_portrait
 from bot_roulette.creation.cv_parser import create_root_persona, write_root_persona
 from bot_roulette.creation.enrich import (
     _extract_how_you_text,
@@ -28,7 +30,7 @@ from bot_roulette.creation.random_persona import (
     sample_seed_traits,
     validate_fixed_seed_traits,
 )
-from bot_roulette.llm import UnusableOutput
+from bot_roulette.llm import ImageModel, UnusableOutput
 from bot_roulette.persona import load_persona
 
 ENRICHED_CORE = (
@@ -255,10 +257,14 @@ def test_a_bad_identity_is_rejected(changes, problem):
         PersonaIdentity(**{**ANNA.model_dump(), **changes})
 
 
-def test_random_persona_runs_the_whole_pipeline_inside_root(tmp_path, make_llm, library_config):
+def test_random_persona_runs_the_whole_pipeline_inside_root(tmp_path, make_llm, library_config, reply):
     root = tmp_path / "personas"
     llm, fake = make_llm(
         "NAME: Zelda | FULL_NAME: Zelda Moon\n\nZelda Moon is 30. Languages: Italian.",
+        "Com'è fisicamente?",
+        reply(text="normale"),
+        '{"passed": true}',
+        "30-year-old woman of average height",
         f"Tell me about your life. {END_MARKER}",
         "FIELD NOTES",
         ENRICHED_CORE,
@@ -281,20 +287,148 @@ def test_random_persona_runs_the_whole_pipeline_inside_root(tmp_path, make_llm, 
     assert root_cfg["seed_traits"] == traits
     assert list((root / "anna").glob("interview_*.json"))
     # No partner exists yet, so voice calibration made no call.
-    assert len(fake.requests) == 4
+    assert len(fake.requests) == 8
     assert {r["model"] for r in fake.requests} == {"test-model"}
 
 
-def test_a_saved_interview_is_reused(tmp_path, make_llm, library_config, write_persona):
+def test_the_persona_says_what_it_looks_like_before_the_interview(
+    tmp_path, make_llm, library_config, write_persona, reply
+):
     config = write_persona(tmp_path, "anna", name="Anna")
+    llm, fake = make_llm(
+        "Prima di iniziare: com'è fisicamente?",
+        reply(text="alta [NEXT] capelli ricci, occhiali"),
+        '{"passed": true}',
+        '"A 30-year-old woman, tall, with curly dark hair and round glasses."',
+        "Tell me about your life.",
+        reply(text="nata a Torino"),
+        '{"passed": true}',
+        f"Thank you. {END_MARKER}",
+        "FIELD NOTES",
+        ENRICHED_CORE,
+    )
+    enriched = develop_persona(llm, config, creation=library_config.creation)
+    looks = "Looks: 30-year-old woman, tall, with curly dark hair and round glasses"
+    # Asked in her own language; her answer becomes one line of her core.
+    translation = fake.requests[0]["messages"]
+    assert "into Italian," in translation[0]["content"]
+    assert translation[1]["content"] == APPEARANCE_QUESTION
+    assert fake.requests[1]["messages"][-1]["content"] == "Prima di iniziare: com'è fisicamente?"
+    core = (config.parent / "anna.md").read_text(encoding="utf-8")
+    assert f"Turin.\n{looks}\n\nLanguages:" in core
+    # The interview starts afresh, from the core with her looks in it.
+    interview_answer = fake.requests[5]["messages"]
+    assert looks in interview_answer[0]["content"]
+    assert "fisicamente" not in json.dumps(interview_answer)
+    # The exchange is kept in the root folder, like the interview.
+    (exchange,) = config.parent.glob("appearance_anna_*.json")
+    assert json.loads(exchange.read_text(encoding="utf-8"))[1] == {
+        "role": "respondent", "content": "alta\ncapelli ricci, occhiali",
+    }
+    assert not list(enriched.parent.glob("appearance_*"))
+    assert not list(config.parent.glob("portrait.*"))  # no image model
+    assert len(fake.requests) == 10
+
+
+def test_an_english_speaker_is_asked_without_a_translation(tmp_path, make_llm, write_persona, reply):
+    config = write_persona(tmp_path, "anna", name="Anna")
+    (config.parent / "anna.md").write_text(
+        "Anna Smith, 30, lives in Leeds.\n\nLanguages: English, native; French, A2.",
+        encoding="utf-8",
+    )
+    llm, fake = make_llm(
+        reply(text="tall, red hair"), '{"passed": true}', "30-year-old woman, tall, with red hair"
+    )
+    assert describe_appearance(llm, config) == "30-year-old woman, tall, with red hair"
+    assert fake.requests[0]["messages"][-1]["content"] == APPEARANCE_QUESTION
+    assert len(fake.requests) == 3
+
+
+def _interviewed_root(tmp_path, write_persona):
+    """A root whose run died after the interview: its looks and its
+    transcript are saved."""
+    config = write_persona(tmp_path, "anna", name="Anna")
+    core = config.parent / "anna.md"
+    core.write_text(
+        core.read_text(encoding="utf-8") + "\nLooks: 30-year-old woman with round glasses",
+        encoding="utf-8",
+    )
     (config.parent / "interview_anna_1.json").write_text(
         json.dumps([{"role": "interviewer", "content": "q"}, {"role": "respondent", "content": "a"}]),
         encoding="utf-8",
     )
+    return config
+
+
+def test_saved_looks_and_interview_are_reused(tmp_path, make_llm, library_config, write_persona):
+    config = _interviewed_root(tmp_path, write_persona)
     llm, fake = make_llm("FIELD NOTES", ENRICHED_CORE)
     enriched = develop_persona(llm, config, creation=library_config.creation)
     assert load_persona(enriched).parent == "anna"
     assert len(fake.requests) == 2
+
+
+def _image_api(monkeypatch, outcome):
+    """Fakes OpenRouter's POST /images with ``outcome``, a response or
+    an exception to raise; returns the requests it gets."""
+    sent = []
+
+    def post(url, **kwargs):
+        sent.append((url, kwargs))
+        if isinstance(outcome, BaseException):
+            raise outcome
+        return outcome
+
+    monkeypatch.setattr(httpx, "post", post)
+    return sent
+
+
+IMAGE_MODEL = ImageModel.openrouter(api_key="sk-or-test", model="img/model")
+
+
+def test_the_portrait_is_drawn_from_the_looks_and_travels_with_the_persona(
+    tmp_path, make_llm, library_config, write_persona, monkeypatch
+):
+    config = _interviewed_root(tmp_path, write_persona)
+    image = base64.b64encode(b"jpeg bytes").decode()
+    sent = _image_api(monkeypatch, httpx.Response(
+        200, json={"data": [{"b64_json": image, "media_type": "image/jpeg"}]}
+    ))
+    llm, _ = make_llm("FIELD NOTES", ENRICHED_CORE)
+    enriched = develop_persona(
+        llm, config, creation=library_config.creation, image_model=IMAGE_MODEL
+    )
+    ((url, request),) = sent
+    assert url == "https://openrouter.ai/api/v1/images"
+    assert request["headers"] == {"Authorization": "Bearer sk-or-test"}
+    assert (request["json"]["model"], request["json"]["aspect_ratio"]) == ("img/model", "3:4")
+    assert "photo of a 30-year-old woman with round glasses, looking directly" in request["json"]["prompt"]
+    assert (config.parent / "portrait.jpg").read_bytes() == b"jpeg bytes"
+    assert (enriched.parent / "portrait.jpg").read_bytes() == b"jpeg bytes"
+    # A persona that has one is never drawn again.
+    draw_portrait(IMAGE_MODEL, config, "someone else")
+    assert len(sent) == 1
+
+
+@pytest.mark.parametrize(
+    "failure",
+    [
+        httpx.Response(402, json={"error": {"message": "Insufficient credits"}}),
+        httpx.Response(200, json={"data": []}),
+        httpx.ConnectError("network is down"),
+    ],
+)
+def test_a_failed_portrait_never_stops_a_creation(
+    tmp_path, make_llm, library_config, write_persona, monkeypatch, failure
+):
+    config = _interviewed_root(tmp_path, write_persona)
+    _image_api(monkeypatch, failure)
+    llm, _ = make_llm("FIELD NOTES", ENRICHED_CORE)
+    enriched = develop_persona(
+        llm, config, creation=library_config.creation, image_model=IMAGE_MODEL
+    )
+    assert load_persona(enriched).chat_ready
+    assert not list(config.parent.glob("portrait.*"))
 
 
 def test_voice_partners_come_from_the_same_personas_folder(tmp_path, write_persona):

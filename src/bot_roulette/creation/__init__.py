@@ -1,7 +1,7 @@
 """Making personas: a root persona v0.1 from a CV (cv_parser.py) or from
 scratch (random_persona.py), then the development pipeline (pipeline.py):
-an interview (interviewer.py), enrichment and voice calibration
-(enrich.py)."""
+the persona's looks and portrait (appearance.py), an interview
+(interviewer.py), enrichment and voice calibration (enrich.py)."""
 
 from .cv_parser import build_persona_from_cv
 from .enrich import calibrate_voice, enrich_persona, rebuild_from_notes

@@ -13,6 +13,14 @@ def test_load_persona(persona_config):
     assert "INTERVIEW" in spec.scenarios and "PAIRED" not in spec.scenarios
 
 
+def test_a_portrait_is_an_image_next_to_the_core(persona_config):
+    assert load_persona(persona_config).portrait is None
+    (persona_config.parent / "portrait.txt").write_text("not an image", encoding="utf-8")
+    assert load_persona(persona_config).portrait is None
+    (persona_config.parent / "portrait.jpg").write_bytes(b"jpeg")
+    assert load_persona(persona_config).portrait == persona_config.parent / "portrait.jpg"
+
+
 def test_finders_only_list_enriched_and_ready_personas(tmp_path, write_persona):
     write_persona(tmp_path, "anna", name="Anna")
     enriched = write_persona(tmp_path, "anna_20260101_000000", name="Anna", parent="anna", ready=False)

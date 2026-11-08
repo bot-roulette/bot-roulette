@@ -6,7 +6,8 @@ Design:
   closes, the session is gone — unless CHAT_MEMORY_ALLOWED saved it
   after every turn (see chats.py). No database.
 - The client first fetches GET /personas to show the picker (id, name,
-  full core text for the preview). Its FIRST WebSocket message then
+  full core text for the preview, and whether there is a portrait,
+  served by GET /personas/{id}/portrait). Its FIRST WebSocket message then
   names the chosen persona: {"type": "start", "persona": id}.
 - Spectator mode: if the start message also has "persona_b", the two
   personas chat with EACH OTHER and the user just watches. Bubbles and
@@ -21,8 +22,9 @@ Design:
       A fixed trait is a listed value or your own words ("settlement":
       "Bergamo"); an age in your own words is "37" or "40-45", 18 to 100.
     POST /personas/import-cv                  multipart PDF upload
-  Both run the full development pipeline (interview -> enrichment ->
-  voice calibration) in a background thread; the client polls
+  Both run the full development pipeline (looks -> interview ->
+  enrichment -> voice calibration, and a portrait when .env sets
+  IMAGE_MODEL) in a background thread; the client polls
   GET /jobs/{job_id} until status is "done", "error" or
   "cancelled". POST /jobs/{job_id}/cancel stops a job at its
   next model call. Only chat-ready personas (voice-calibrated, or
@@ -145,6 +147,7 @@ from . import home
 from .settings import (
     is_configured,
     load_env,
+    make_image_model,
     make_llm,
     save_settings,
     server_api_key,
@@ -241,6 +244,7 @@ ACCESS_CODE = os.environ.get("ACCESS_CODE", "")
 
 app = FastAPI()
 llm = make_llm()
+make_image_model()  # a malformed IMAGE_BASE_URL stops the server here, as LLM_BASE_URL does
 
 
 def _access_ok(headers) -> bool:
@@ -518,8 +522,8 @@ async def index():
 async def list_personas():
     """Enriched personas for the picker: id (folder name), display name,
     core preview, whether it is chat-ready (required before chatting),
-    and whether its voice was calibrated (a chat-ready persona may have
-    had no one to calibrate against)."""
+    whether its voice was calibrated (a chat-ready persona may have
+    had no one to calibrate against), and whether it has a portrait."""
     personas = []
     for cfg in sorted(find_listed_personas()):
         try:
@@ -533,6 +537,7 @@ async def list_personas():
                 "core": spec.core,
                 "chat_ready": spec.chat_ready,
                 "voice_calibrated": spec.voice_calibrated,
+                "portrait": spec.portrait is not None,
             }
         )
     personas.sort(key=lambda p: p["name"].lower())
@@ -543,6 +548,21 @@ async def list_personas():
         "memory_allowed": CHAT_MEMORY_ALLOWED,
         "configured": is_configured(),
     }
+
+
+_PORTRAIT_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".webp": "image/webp"}
+
+
+@app.get("/personas/{persona_id}/portrait")
+async def persona_portrait(persona_id: str):
+    """A listed persona's passport photo; 404 if it has none."""
+    # Looked up among the listed personas, like delete: the id never
+    # becomes a path of its own.
+    cfg = {c.parent.name: c for c in find_listed_personas()}.get(persona_id)
+    portrait = load_persona(cfg).portrait if cfg is not None else None
+    if portrait is None:
+        raise HTTPException(status_code=404, detail="no portrait")
+    return FileResponse(portrait, media_type=_PORTRAIT_TYPES[portrait.suffix])
 
 
 @app.get("/personas/generation-options")
@@ -609,6 +629,7 @@ async def generate_persona(payload: dict | None = Body(default=None)):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from None
 
+    image_model = make_image_model()
     job_id = _start_job(
         "generate",
         lambda: build_random_persona(
@@ -618,6 +639,7 @@ async def generate_persona(payload: dict | None = Body(default=None)):
             creation=CONFIG.creation,
             random_personas=CONFIG.random_personas,
             fixed_traits=fixed_traits,
+            image_model=image_model,
         ),
     )
     return {"job": job_id}
@@ -648,11 +670,13 @@ async def import_cv(pdf: UploadFile = File(...)):
     tmp = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
     tmp.write(data)
     tmp.close()
+    image_model = make_image_model()
 
     def run():
         try:
             return build_persona_from_cv(
-                llm, tmp.name, root=home.PERSONAS_DIR, creation=CONFIG.creation
+                llm, tmp.name, root=home.PERSONAS_DIR, creation=CONFIG.creation,
+                image_model=image_model,
             )
         finally:
             try:

@@ -5,6 +5,8 @@ A persona lives in its own folder (e.g. ``giulia/``) containing:
 - ``<name>.yaml``      — the coordinating config (see below).
 - ``<name>.md``        — the persona CORE (biography, personality, people,
   memories, texting style). Mutable: evolved by the Enricher (enrich.py).
+- ``portrait.png``     — a passport photo (or .jpg, .webp), when one was
+  drawn (see creation/appearance.py).
 
 The YAML config:
 
@@ -41,6 +43,8 @@ import yaml
 
 from .scenarios import DEFAULT_SCENARIOS
 
+_PORTRAIT_FILES = ("portrait.png", "portrait.jpg", "portrait.webp")
+
 
 @dataclass
 class PersonaSpec:
@@ -54,6 +58,7 @@ class PersonaSpec:
     parent: str = "none"       # persona this one was enriched from ("none" = root)
     voice_calibrated: bool = False  # HOW YOU TEXT rewritten from stranger chats
     chat_ready: bool = False   # offered for chatting (see find_chat_ready_personas)
+    portrait: Path | None = None  # passport photo, if one was drawn
 
 
 def load_persona(config_path: str | Path) -> PersonaSpec:
@@ -91,6 +96,11 @@ def load_persona(config_path: str | Path) -> PersonaSpec:
     # PAIRED is generated per session (see scenarios.py).
     scenarios: dict[str, str] = dict(DEFAULT_SCENARIOS)
 
+    portrait = next(
+        (base_dir / f for f in _PORTRAIT_FILES if (base_dir / f).is_file()),
+        None,
+    )
+
     return PersonaSpec(
         name=name,
         full_name=full_name,
@@ -100,6 +110,7 @@ def load_persona(config_path: str | Path) -> PersonaSpec:
         parent=parent,
         voice_calibrated=voice_calibrated,
         chat_ready=chat_ready,
+        portrait=portrait,
     )
 
 

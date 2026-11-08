@@ -3,8 +3,9 @@
 Everything the library leaves to its caller is decided here: the home
 folder (BOT_ROULETTE_HOME, else the current directory) holds .env
 (MODEL and OPENROUTER_API_KEY, or LLM_BASE_URL for your own
-OpenAI-compatible server), config.yaml and personas/, and new
-datasets go to its datasets/ folder unless --out says otherwise.
+OpenAI-compatible server; IMAGE_MODEL for new personas' portraits, and
+IMAGE_BASE_URL for your own image server), config.yaml and personas/,
+and new datasets go to its datasets/ folder unless --out says otherwise.
 """
 
 import argparse
@@ -22,6 +23,7 @@ from pydantic import ValidationError
 from bot_roulette import (
     LLM,
     Config,
+    ImageModel,
     Persona,
     PersonaIdentity,
     build_dataset,
@@ -71,6 +73,30 @@ def make_llm() -> LLM:
         return LLM.openai_compatible(base_url, model=model, api_key=key)
     except ValueError as e:
         raise SystemExit(f"LLM_BASE_URL in {home_dir() / '.env'}: {e}")
+
+
+def make_image_model() -> ImageModel | None:
+    """The image model that draws new personas' portraits (IMAGE_MODEL),
+    or None when IMAGE_MODEL is not set: no portraits. On your own server
+    that follows OpenAI's image API when IMAGE_BASE_URL is set
+    (IMAGE_API_KEY only if it needs a key), else on OpenRouter. Exits
+    with a pointer to .env when something is missing or malformed."""
+    model = os.environ.get("IMAGE_MODEL", "").strip()
+    if not model:
+        return None
+    base_url = os.environ.get("IMAGE_BASE_URL", "").strip()
+    if base_url:
+        key = os.environ.get("IMAGE_API_KEY", "").strip()
+        try:
+            return ImageModel.openai_compatible(base_url, model=model, api_key=key)
+        except ValueError as e:
+            raise SystemExit(f"IMAGE_BASE_URL in {home_dir() / '.env'}: {e}")
+    key = os.environ.get("OPENROUTER_API_KEY", "").strip()
+    if not key:
+        raise SystemExit(
+            f"IMAGE_MODEL runs on OpenRouter: add OPENROUTER_API_KEY to {home_dir() / '.env'}"
+        )
+    return ImageModel.openrouter(api_key=key, model=model)
 
 
 def app_config(home: Path) -> Config:
@@ -143,6 +169,7 @@ def run_cv(args, home: Path) -> None:
     build_persona_from_cv(
         make_llm(), pdf_path, root=home / "personas",
         creation=config.creation, max_turns=args.max_turns,
+        image_model=make_image_model(),
     )
 
 
@@ -163,6 +190,7 @@ def run_random(args, home: Path) -> None:
         make_llm(), identity=identity, root=home / "personas",
         creation=config.creation, random_personas=config.random_personas,
         seed=args.seed, max_turns=args.max_turns,
+        image_model=make_image_model(),
     )
 
 
@@ -182,7 +210,9 @@ def run_enrich(args, home: Path) -> None:
             raise SystemExit(str(e))
     elif not spec.parent or spec.parent == "none":
         try:
-            resume_development(llm, config_path, creation=creation)
+            resume_development(
+                llm, config_path, creation=creation, image_model=make_image_model()
+            )
         except ValueError as e:
             raise SystemExit(str(e))
     else:

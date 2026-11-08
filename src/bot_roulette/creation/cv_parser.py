@@ -7,8 +7,9 @@ v0.1 folder and then run the SAME development pipeline
 
 1. PDF -> markdown              (PDFToMarkdown: the model reads each page)
 2. markdown -> persona v0.1     (PersonaFromCV -> root persona folder)
-3. AVP-style interview          (interviewer.Interviewer, INTERVIEW scenario)
-4. enrichment                   (enrich.enrich_persona -> new persona folder,
+3. looks and portrait           (appearance.py: written into the v0.1 core)
+4. AVP-style interview          (interviewer.Interviewer, INTERVIEW scenario)
+5. enrichment                   (enrich.enrich_persona -> new persona folder,
                                  then stranger chats rewrite HOW YOU TEXT)
 
 ``build_persona_from_cv`` runs all of it. The result is an enriched
@@ -34,6 +35,7 @@ from loguru import logger
 
 from ..config import CreationConfig
 from ..llm.core import GENERATION_ATTEMPTS, LLM, UnusableOutput, complete
+from ..llm.images import ImageModel
 from .pipeline import develop_persona
 
 READ_PAGE_PROMPT = (
@@ -301,8 +303,13 @@ def build_persona_from_cv(
     root: str | Path,
     creation: CreationConfig,
     max_turns: int | None = None,
+    image_model: ImageModel | None = None,
 ) -> Path:
     """Full pipeline: CV pdf -> interviewed, enriched, chat-ready persona
-    in the personas folder ``root``. Returns the enriched YAML config."""
+    in the personas folder ``root``, with a portrait if given an
+    ``image_model``. Returns the enriched YAML config."""
     config_path = create_root_persona(llm, pdf_path, root=root)
-    return develop_persona(llm, config_path, creation=creation, max_turns=max_turns)
+    return develop_persona(
+        llm, config_path, creation=creation, max_turns=max_turns,
+        image_model=image_model,
+    )

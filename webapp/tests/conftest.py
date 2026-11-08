@@ -117,7 +117,8 @@ def _serve(tmp_path_factory, **env):
 
     saved_env = dict(os.environ)
     # The tests that want an access code set it themselves.
-    for name in ("OPENROUTER_API_KEY", "LLM_BASE_URL", "LLM_API_KEY", "MODEL", "ACCESS_CODE"):
+    for name in ("OPENROUTER_API_KEY", "LLM_BASE_URL", "LLM_API_KEY", "MODEL", "ACCESS_CODE",
+                 "IMAGE_MODEL", "IMAGE_BASE_URL", "IMAGE_API_KEY"):
         os.environ.pop(name, None)
     os.environ.update(
         BOT_ROULETTE_HOME=str(home),

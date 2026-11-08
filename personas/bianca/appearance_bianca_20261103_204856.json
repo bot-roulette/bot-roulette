@@ -1,0 +1,10 @@
+[
+  {
+    "role": "interviewer",
+    "content": "Prima di iniziare, una cosa per i dati dello studio: chiediamo a ogni partecipante di descrivere il proprio aspetto fisico con parole proprie. Come descriverebbe il suo aspetto? Il viso, i capelli, gli occhi, la pelle, la corporatura o qualsiasi altro dettaglio che le persone tendono a notare."
+  },
+  {
+    "role": "respondent",
+    "content": "Mah, non è facilissimo descriversi. Ho i capelli castani, abbastanza scuri, di solito li porto sulle spalle, e gli occhi marroni.\nSono di corporatura nella media, niente che attiri particolarmente l’attenzione, direi."
+  }
+]

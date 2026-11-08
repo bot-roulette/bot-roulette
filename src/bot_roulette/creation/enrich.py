@@ -121,8 +121,10 @@ You are an ENRICHER, not a rewriter:
   notes do not contain.
 
 Required sections (create them if missing):
-- === WHO YOU ARE === compact biography: facts, household, work, languages,
-  knows / doesn't. Keep this a skeleton. Anecdotes do not belong here.
+- === WHO YOU ARE === compact biography: facts, looks, household, work,
+  languages, knows / doesn't. Keep this a skeleton. Anecdotes do not
+  belong here. Keep every detail of the Looks line: the persona's
+  portrait shows exactly that face.
 - === PERSONALITY === inner life only: values, contradictions, what stings,
   how they see themselves. Phrase interpretations as traits, not analysis
   ("you downplay how much the stalled degree weighs on you", not "subject
@@ -505,11 +507,11 @@ def enrich_persona(
     new_dir.mkdir(parents=True, exist_ok=False)
 
     # Copy the source folder's files (core + config; scenarios are no
-    # longer stored on disk), but not transcripts or field notes: those
-    # belong to the folder they were produced in, and would otherwise
-    # accumulate down the lineage.
+    # longer stored on disk), but not transcripts, the looks exchange or
+    # field notes: those belong to the folder they were produced in, and
+    # would otherwise accumulate down the lineage.
     for f in source_dir.iterdir():
-        if f.is_file() and not f.name.startswith(("interview_", "field_notes_")):
+        if f.is_file() and not f.name.startswith(_NOT_COPIED):
             shutil.copy2(f, new_dir / f.name)
 
     # Overwrite the core with the enriched version.
@@ -550,6 +552,10 @@ def enrich_persona(
 
 
 _REQUIRED_FURNITURE = ("=== YOUR PEOPLE ===", "=== MEMORIES & STORIES ===")
+
+# Files of a source folder that stay behind when a new folder is made
+# from it (see enrich_persona); a portrait is copied along.
+_NOT_COPIED = ("interview_", "field_notes_", "appearance_")
 
 
 def _warn_if_thin(core: str) -> None:
@@ -598,7 +604,7 @@ def rebuild_from_notes(llm: LLM, config_path: Path, *, creation: CreationConfig)
     new_dir.mkdir(parents=True, exist_ok=False)
 
     for f in parent_dir.iterdir():
-        if f.is_file() and not f.name.startswith(("interview_", "field_notes_")):
+        if f.is_file() and not f.name.startswith(_NOT_COPIED):
             shutil.copy2(f, new_dir / f.name)
 
     cfg = yaml.safe_load(parent_config.read_text(encoding="utf-8"))

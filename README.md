@@ -53,6 +53,9 @@ bot-roulette tackles each of these where it starts:
      └────────────────────┬─────────────────────┘
                           ▼
                   root persona v0.1                 personas/giulia/
+                          │ asked what it looks like → describer
+                          ▼
+                 Looks: line in the core            + portrait.png, with IMAGE_MODEL
                           │ life interview: interviewer ⇄ persona
                           ▼
                 interview transcript
@@ -88,7 +91,7 @@ has five sections:
 
 | Section | Holds |
 |---|---|
-| `WHO YOU ARE` | the factual skeleton: age, places, household, work, languages and their level, what the person knows and what there is no evidence of |
+| `WHO YOU ARE` | the factual skeleton: age, looks, places, household, work, languages and their level, what the person knows and what there is no evidence of |
 | `PERSONALITY` | inner life: values, contradictions, what stings, self-image |
 | `YOUR PEOPLE` | every recurring person, with one concrete detail each |
 | `MEMORIES & STORIES` | four to eight short scenes a chat can reach for |
@@ -257,7 +260,20 @@ first, then every other one with its level) and knowledge bounds
 (`Knows:`, `No evidence of:`) that scope what the person can plausibly
 know. From there, one shared pipeline:
 
-1. **Interview.** An interviewer agent runs an in-depth, semi-structured
+1. **Looks.** Before the interview, the persona is asked what it looks
+   like, in character and in its native language (the first on its
+   `Languages:` line): in the INTERVIEW scenario a researcher asks, so it
+   answers, judge included. A describer turns the answer, checked
+   against the core, into one English line of physical facts, filling in
+   whatever the answer leaves out, and writes it into the v0.1 core as
+   `Looks:`. The interview then starts afresh from that core: the person
+   it talks to already has a face, and so does everything after it. The
+   enricher keeps the line, and the judge checks chats against it. With
+   an image model (`IMAGE_MODEL` in `.env`), the same line is the subject
+   of a passport photo, `portrait.png`, drawn once in the root folder and
+   copied along with the persona; a refused or failed picture is only
+   logged. The exchange is saved in the root folder.
+2. **Interview.** An interviewer agent runs an in-depth, semi-structured
    life interview modeled on the American Voices Project (AVP) protocol.
    It moves through nine modules: life story, daily life, work and
    education, money, family and relationships, housing and
@@ -273,13 +289,13 @@ know. From there, one shared pipeline:
    included. It opens up gradually, misremembers dates, lights up on
    some topics and refuses others. The transcript of what was said is
    saved in the root folder.
-2. **Field notes.** An analyst reads the transcript the way a
+3. **Field notes.** An analyst reads the transcript the way a
    qualitative researcher writes up an interview, in eight sections:
    biographical facts, life history, people, daily life and habits,
    inner life, voice and manner, notable anecdotes, tensions and gaps.
    Facts stay literal; inference is allowed only about inner life, and
    is marked as interpretation; quotes keep the respondent's language.
-3. **Enrichment.** An enricher weaves the notes into the core and writes
+4. **Enrichment.** An enricher weaves the notes into the core and writes
    the result to a *new* folder, `<name>_<timestamp>/`, whose `parent`
    is the root. It enriches rather than rewrites: every existing fact
    survives, and where a note conflicts with the core, the core wins.
@@ -291,7 +307,7 @@ know. From there, one shared pipeline:
    `HOW YOU TEXT` stays a thin stub of tics, and no sample messages are
    added: how someone answers a researcher is the wrong register for a
    stranger.
-4. **Voice calibration.** The new persona texts up to `voice_partners`
+5. **Voice calibration.** The new persona texts up to `voice_partners`
    (2) other enriched personas from the same folder, in the stranger
    scenario, for up to `voice_turns` (12) replies each, taking turns at
    opening. Chats shorter than `voice_min_turns` (4) are dropped. A
@@ -388,15 +404,18 @@ the rubric's whole value.
 
 Every role above is played by the same model (the one in `.env`, or
 the `LLM` handed to the library), each with its own prompt and
-temperature. The judge and the two CV steps also turn the model's
-reasoning off, where the server takes that per request (OpenRouter
-does; see [A local model](#a-local-model-or-any-openai-compatible-server)):
+temperature. The judge, the two CV steps, the translator and the
+describer also turn the model's reasoning off, where the server takes
+that per request (OpenRouter does; see [A local
+model](#a-local-model-or-any-openai-compatible-server)):
 
 | Role | Input → output | Temperature |
 |---|---|---|
 | CV reader | a page of the PDF, as an image → its text | 0 |
 | CV extractor | CV markdown → facts-only portrait | 0 |
 | Generator | seed traits → an ordinary person's sketch | 1.0 |
+| Translator | the looks question → the same in the persona's native language (not run for English) | 0 |
+| Describer | the core and the persona's answer → the `Looks:` line | 0.3 |
 | Interviewer | the interview so far → the next question | 0.7 |
 | Persona | a message → state, thoughts, reply | 1.0 |
 | Judge | a candidate turn → pass, or a violation and a critique | 0 |
@@ -405,6 +424,10 @@ does; see [A local model](#a-local-model-or-any-openai-compatible-server)):
 | Voice calibrator | stranger chats → a new `HOW YOU TEXT` | 0.3 |
 | Entry-story writer | core and a moment → where, why and in what mood the app gets opened | 0.9 |
 | Rubric | a whole conversation → scores, evidence, verdict | 0 |
+
+The portrait is the one exception: an image model of its own draws it
+(`IMAGE_MODEL`, or the `ImageModel` handed to the library), on
+OpenRouter or on your own image server.
 
 ## The repository
 
@@ -448,14 +471,23 @@ ACCESS_CODE=some-shared-secret     # optional: the web app asks for it first
 GENERATION_ALLOWED=true            # allow creating personas from the web app
 CANCELLATION_ALLOWED=true          # allow deleting personas from the web app
 CHAT_MEMORY_ALLOWED=true           # save chats to disk and offer resume
+IMAGE_MODEL=google/gemini-3.1-flash-image   # optional: a passport photo of each new persona
 ```
 
-One model (from `.env`) is used for everything; to import CVs it must
-accept images, since it reads each page as one. `MODEL` and its key can
-also be left out and set from the web app's **⚙ settings** panel
-instead (see [Web app](#web-app)), which writes them into `.env`.
-Values in `.env` take precedence over variables of the same name already
-set in the OS environment.
+One model (from `.env`) is used for everything but the portraits; to
+import CVs it must accept images, since it reads each page as one.
+`MODEL` and its key can also be left out and set from the web app's
+**⚙ settings** panel instead (see [Web app](#web-app)), which writes
+them into `.env`. Values in `.env` take precedence over variables of
+the same name already set in the OS environment.
+
+`IMAGE_MODEL` is optional: with it, every new persona gets a portrait
+(see [How a persona is built](#how-a-persona-is-built)); any image model
+on [OpenRouter](https://openrouter.ai/models?output_modalities=image)
+works. It runs on OpenRouter, with `OPENROUTER_API_KEY`, even when the
+chat model runs on your own server, unless it has a server of its own
+(see [A local image model](#a-local-image-model)). The settings panel
+doesn't show it: set it in `.env`.
 
 Everything else that tunes the apps lives in `config.yaml`, with a
 comment on each setting. Its `web:` section (chat limits, the judge in
@@ -517,6 +549,34 @@ you switch back, is never sent anywhere else. Worth knowing:
 - **Ports.** The web app and vLLM both default to port 8000: start one
   of them on another (`bot-roulette-web --port 8001`).
 
+### A local image model
+
+The portraits can also come from your own image server, on your machine
+or a hosted one, if it follows OpenAI's image API (`POST
+/v1/images/generations`), as LocalAI and stable-diffusion.cpp's
+`sd-server` do. Point `.env` at it; portraits then need no
+`OPENROUTER_API_KEY`:
+
+```
+IMAGE_BASE_URL=http://127.0.0.1:8888/v1   # the server's address (here, sd-server --listen-port 8888)
+IMAGE_MODEL=z-image-turbo                 # the model, as the server names it
+IMAGE_API_KEY=...                         # only if the server needs a key
+```
+
+The image server gets `IMAGE_API_KEY`, never the OpenRouter key. Worth
+knowing:
+
+- **Size.** A portrait is asked for at 768×1024 pixels (3:4), about the
+  megapixel most open image models are made for.
+- **The model.** The portrait prompt is a paragraph of plain prose that
+  also says what to avoid ("no retouching"). Models that read prompts
+  with a language model follow it best (Z-Image Turbo, FLUX.2 [klein],
+  FLUX.1 [schnell], Qwen-Image); older Stable Diffusion models (1.5,
+  SDXL), made for short lists of keywords, follow it loosely.
+- **Time.** The apps wait up to 10 minutes for an image: a server may
+  load the model first, or draw on a CPU. Stopping a creation job takes
+  effect once the image is back.
+
 ## Creating a persona
 
 Two entry points, one shared development pipeline (described in [How a
@@ -574,8 +634,8 @@ uvicorn bot_roulette_web.server:app --reload    # the same, with uvicorn directl
 
 Then open http://localhost:8000 (if `.env` sets an `ACCESS_CODE`, the
 browser asks for it first). The app opens on a **persona picker**:
-every enriched persona is listed with its name; selecting one shows the
-full core description as a preview. “chat with this person” is enabled
+every enriched persona is listed with its name; selecting one shows its
+portrait, if it has one, and the full core description as a preview. “chat with this person” is enabled
 once the persona is chat-ready (see [Creating a
 persona](#creating-a-persona)). From the picker you can also:
 
@@ -585,7 +645,8 @@ persona](#creating-a-persona)). From the picker you can also:
   this generation (the choices are not saved): pick a value from its
   list, or “✎ write your own…” to put it in your own words (an exact
   age, a named town, a precise job). It then runs the full
-  development pipeline (interview → enrichment → voice) in the background.
+  development pipeline (looks → interview → enrichment → voice, and a
+  portrait with `IMAGE_MODEL`) in the background.
   Takes several minutes; the status bar tracks it, and “✕ stop” aborts it
   after the current step. Whatever it already saved stays on disk and can
   be resumed (see above).
@@ -618,8 +679,9 @@ enables them, create and delete personas. The app listens on 127.0.0.1
 access code and serve the app over HTTPS, since the browser sends the
 code with every request. Restart the app after changing the code.
 
-During a chat, “who is this?” reveals the persona's core and scenario,
-and “change persona” returns to the picker. Under the persona's latest
+During a chat, “who is this?” reveals the persona's portrait, core and
+scenario (the chat itself shows no photo: in the scenario, the app has
+none), and “change persona” returns to the picker. Under the persona's latest
 reply, “✎ edit” lets you rewrite it — bubbles, state and thoughts — and
 “↻ regenerate” replaces it with a fresh reply to the same message (as
 many times as you like; it doesn't count toward the message limit). Both
@@ -675,8 +737,8 @@ model it talks to and hand it in, and you say where personas live.
 ```python
 from loguru import logger
 from bot_roulette import (
-    LLM, Persona, PersonaIdentity, build_random_persona, live_paired_scenario,
-    load_config, load_persona,
+    LLM, ImageModel, Persona, PersonaIdentity, build_random_persona,
+    live_paired_scenario, load_config, load_persona,
 )
 
 logger.enable("bot_roulette")   # optional: the library is quiet by default
@@ -698,6 +760,10 @@ new_persona = build_random_persona(
     llm, root="personas", creation=settings.creation,
     random_personas=settings.random_personas,
     identity=PersonaIdentity(first_name="Anna", surname="Rossi", sex="female", country="Italy"),
+    # optional: a passport photo of her, portrait.png in her folder
+    image_model=ImageModel.openrouter(api_key="sk-or-...", model="google/gemini-3.1-flash-image"),
+    # or on a server that follows OpenAI's image API, e.g. a local one:
+    # image_model=ImageModel.openai_compatible("http://127.0.0.1:8888/v1", "z-image-turbo"),
 )
 ```
 
@@ -724,11 +790,14 @@ the web app use nothing else.
 personas/
   giulia/                       # root v0.1 (parent: none) — interviewed, never chatted with
     giulia.yaml                 # config: name, full_name, core, parent
-    giulia.md                   # the core: biography, personality, voice
+    giulia.md                   # the core: biography, looks, personality, voice
+    appearance_giulia_*.json    # asked what it looks like, before the interview
+    portrait.png                # passport photo (with IMAGE_MODEL), copied into the enriched folder
     interview_giulia_*.json     # interview transcript(s)
   giulia_20260714_212108/       # enriched (parent: giulia) — this is what you chat with
     giulia.yaml
     giulia.md                   # enriched core
+    portrait.png
     field_notes_*.md            # analyst field notes from the interview
     voice_calibration/          # stranger chats used to rewrite HOW YOU TEXT
     generation_log.txt          # pipeline log (web-created personas; git-ignored: it holds local paths)
@@ -747,7 +816,8 @@ src/bot_roulette/
 ├── llm/                  the model; knows nothing about personas
 │   ├── core.py             LLM (client + model), completion helper, cancellation, JSON extraction
 │   ├── openrouter.py       key check, model catalog, model-id check (free calls)
-│   └── openai_compatible.py  the same checks for any OpenAI-compatible server (its model list)
+│   ├── openai_compatible.py  the same checks for any OpenAI-compatible server (its model list)
+│   └── images.py           ImageModel: the image model that draws portraits (OpenRouter, or OpenAI's image API)
 ├── config.py             settings models and strict loader (creation, random_personas)
 ├── persona/              what a persona is
 │   ├── spec.py             loading persona folders; finding enriched / chat-ready personas
@@ -759,7 +829,8 @@ src/bot_roulette/
 │   ├── judge.py            fail-open consistency judge (JSON-mode verdict on each reply)
 │   └── conversation.py     two personas texting each other, headless
 ├── creation/             making personas
-│   ├── pipeline.py         develop_persona: interview → enrichment → voice calibration; resume
+│   ├── pipeline.py         develop_persona: looks → interview → enrichment → voice calibration; resume
+│   ├── appearance.py       the persona's looks, asked before the interview, and its portrait
 │   ├── interviewer.py      AVP-style life interviewer
 │   ├── enrich.py           transcript → field notes → enriched core; voice calibration; rebuild
 │   ├── cv_parser.py        CV → persona v0.1, then the pipeline

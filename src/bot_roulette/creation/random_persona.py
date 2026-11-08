@@ -30,6 +30,7 @@ from pydantic import BaseModel, ConfigDict, ValidationInfo, field_validator
 
 from ..config import CreationConfig, RandomPersonasConfig
 from ..llm.core import GENERATION_ATTEMPTS, LLM, complete
+from ..llm.images import ImageModel
 from .cv_parser import parse_name_header, write_root_persona
 from .pipeline import develop_persona
 
@@ -372,13 +373,15 @@ def build_random_persona(
     seed: int | None = None,
     max_turns: int | None = None,
     fixed_traits: dict[str, str] | None = None,
+    image_model: ImageModel | None = None,
 ) -> Path:
     """Full pipeline: a person built around ``identity``, with a
     background drawn from ``random_personas`` except where
     ``fixed_traits`` fixes it -> interviewed, enriched, chat-ready
     persona in the personas folder ``root``. Returns the YAML config path
     of the enriched folder. `max_turns` defaults to
-    creation.interview_questions."""
+    creation.interview_questions; with an `image_model`, the persona gets
+    a portrait too."""
     logger.info("--- Generating random persona v0.1 ---")
     result = generate_random_persona(
         llm, identity, random_personas, seed=seed, fixed_traits=fixed_traits
@@ -395,4 +398,7 @@ def build_random_persona(
         encoding="utf-8",
     )
 
-    return develop_persona(llm, config_path, creation=creation, max_turns=max_turns)
+    return develop_persona(
+        llm, config_path, creation=creation, max_turns=max_turns,
+        image_model=image_model,
+    )
