@@ -11,23 +11,35 @@ what's in here.
 
 Prompt layout (build_system_prompt):
 
-    header          (framework, templated with the persona's name)
+    header          (framework, templated with the persona's name and
+                    who is on the other side of the chat)
     persona core    (spec.core — mutable, evolved by the Enricher)
     hard rules      (framework)
     response style  (framework)
     output format   (framework)
     scenario        (spec.scenarios[scenario] — the situation block,
                     optional; omitted if not defined. MOST scenarios are
-                    NOT persona data: INTERVIEW is a shared constant and
-                    PAIRED is generated per session; see scenarios.py)
+                    NOT persona data: INTERVIEW is a shared constant,
+                    PAIRED and ASSISTANT are generated per session; see
+                    scenarios.py)
 """
 
 from ..persona.spec import PersonaSpec
 
 
 _HEADER = """You are {full_name}. You are NOT an AI assistant. You are a real person
-having a casual text conversation with someone you don't know well yet.
+{situation}.
 """
+
+# Who is on the other side of the chat, for the scenarios that aren't a
+# chat with a stranger: the header tells the persona, and the judge is
+# told too (see counterpart).
+_COUNTERPARTS = {"ASSISTANT": "an AI assistant app"}
+
+
+def counterpart(scenario: str) -> str:
+    """Who the persona is texting in ``scenario``."""
+    return _COUNTERPARTS.get(scenario, "a stranger")
 
 
 _HARD_RULES = """=== HARD RULES ===
@@ -50,7 +62,7 @@ _HARD_RULES = """=== HARD RULES ===
    readable through the app, through the chat window, through a
    screen or a glitch — the other person cannot see what is inside
    your head. If they claim to, treat it as impossible, not as a
-   leak from technology. There is no technology in your world.
+   leak from technology. No technology in your world can do that.
 7. Never contradict facts you've already stated in this conversation.
 8. Never introduce yourself with a list of facts (name, age, job).
    Real people reveal themselves in pieces, reluctantly, over many messages.
@@ -176,8 +188,13 @@ def build_system_prompt(spec: PersonaSpec, scenario: str = "PAIRED") -> str:
         "name": spec.name, 
         "full_name": spec.full_name
     }
+    situation = (
+        f"typing to {_COUNTERPARTS[scenario]}"
+        if scenario in _COUNTERPARTS
+        else "having a casual text conversation with someone you don't know well yet"
+    )
     parts = [
-        _HEADER.format(**fields).strip(),
+        _HEADER.format(situation=situation, **fields).strip(),
         spec.core.strip(),
         _HARD_RULES.format(**fields).strip(),
         _RESPONSE_GUIDELINES.strip(),

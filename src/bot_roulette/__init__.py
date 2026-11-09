@@ -24,7 +24,8 @@ is split into areas, each building only on the ones listed before it:
     llm/         the model: LLM, complete(), OpenRouter checks, ImageModel
     config.py    the settings persona creation needs, and their loader
     persona/     a persona folder (load_persona...) and its scenarios
-    chat/        talking to a persona: Persona, judge, parsing, conversations
+    chat/        talking to a persona: Persona, judge, parsing, conversations,
+                 the AI assistant a persona can use
     creation/    new personas: from a CV or from scratch, interview, enrichment
     evaluation/  conversation datasets and their evaluation
 """
@@ -32,8 +33,10 @@ is split into areas, each building only on the ones listed before it:
 from loguru import logger
 
 from .chat import (
+    ASSISTANT_OPENING_NUDGE,
     DEFAULT_MAX_TURNS,
     LEAVE_RE,
+    Assistant,
     Conversation,
     Judge,
     Persona,
@@ -79,9 +82,12 @@ from .llm import (
 )
 from .persona import (
     PersonaSpec,
+    assistant_scenario,
     find_chat_ready_personas,
     find_enriched_personas,
     generate_entry_story,
+    generate_task_story,
+    live_assistant_scenario,
     live_paired_scenario,
     load_persona,
     paired_scenario,
@@ -92,9 +98,11 @@ __version__ = "0.1.0"
 logger.disable(__name__)
 
 __all__ = [
+    "ASSISTANT_OPENING_NUDGE",
     "DEFAULT_MAX_TURNS",
     "LEAVE_RE",
     "LLM",
+    "Assistant",
     "Cancelled",
     "Config",
     "Conversation",
@@ -111,6 +119,7 @@ __all__ = [
     "Turn",
     "UnusableOutput",
     "Verdict",
+    "assistant_scenario",
     "build_dataset",
     "build_persona_from_cv",
     "build_random_persona",
@@ -128,8 +137,10 @@ __all__ = [
     "format_response",
     "generate_entry_story",
     "generate_image",
+    "generate_task_story",
     "is_known_model",
     "is_served_model",
+    "live_assistant_scenario",
     "live_paired_scenario",
     "load_config",
     "load_dataset",

@@ -12,7 +12,7 @@ from pydantic import BaseModel
 
 from ..llm.core import LLM, complete
 from ..persona.spec import load_persona
-from .framework import build_system_prompt
+from .framework import build_system_prompt, counterpart
 from .judge import Judge, Verdict
 from .parsing import LEAVE_RE, format_response, parse_response, split_bubbles
 
@@ -67,7 +67,10 @@ class Persona:
         system_prompt = build_system_prompt(self.spec, scenario)
         self._history = [{"role": "system", "content": system_prompt}]
         self.temperature = 1.0
-        self.judge = Judge(llm, self.spec) if use_judge else None
+        self.judge = (
+            Judge(llm, self.spec, counterpart=counterpart(scenario))
+            if use_judge else None
+        )
 
     @property
     def name(self) -> str:

@@ -3,7 +3,7 @@ import pytest
 from bot_roulette import LLM
 from bot_roulette_cli import main as cli
 
-COMMANDS = ("chat", "cv", "random", "enrich", "dataset", "evaluate")
+COMMANDS = ("chat", "assist", "cv", "random", "enrich", "dataset", "evaluate")
 RANDOM = ["random", "--first-name", "Anna", "--surname", "Rossi", "--sex", "female", "--country", "Italy"]
 
 
@@ -62,6 +62,24 @@ def test_chat(home, fake_llm, monkeypatch, capsys):
     assert "Anna: uno\ndue" in out
     assert out.rstrip().endswith("--- Conversation ended ---")
     assert len(fake.requests) == 2
+
+
+def test_assist(home, fake_llm, capsys):
+    fake = fake_llm(
+        "- a task story", reply("cover letter pls"), "Sure! Here's a draft.", reply("[LEAVE]")
+    )
+    code, out, _ = run(
+        ["assist", str(home.anna), "--task", "write a cover letter", "--no-judge"], capsys
+    )
+    assert code == 0
+    assert "Anna: cover letter pls" in out and "Assistant: Sure! Here's a draft." in out
+    assert out.rstrip().endswith("--- Anna closed the assistant ---")
+    assert "write a cover letter" in fake.requests[0]["messages"][1]["content"]
+    # The assistant: the same model, a plain prompt, only what Anna typed.
+    assistant_call = fake.requests[2]["messages"]
+    assert assistant_call[0]["content"] == "You are a helpful assistant."
+    assert assistant_call[1:] == [{"role": "user", "content": "cover letter pls"}]
+    assert {r["model"] for r in fake.requests} == {"test-model"}
 
 
 def test_dataset_then_evaluate(home, fake_llm, capsys):

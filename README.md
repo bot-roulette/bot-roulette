@@ -335,8 +335,8 @@ run without paying for the interview again.
 ### Scenarios
 
 The core says who the person is; the scenario says where they are and
-why they are texting. Both scenarios live in `persona/scenarios.py`, and
-neither is stored with the persona.
+why they are texting. All three scenarios live in `persona/scenarios.py`,
+and none is stored with the persona.
 
 - **INTERVIEW**: the setting of the creation interview, the same for
   everyone. It is a quiet afternoon at home, and a paid research
@@ -362,6 +362,33 @@ neither is stored with the persona.
   generated from one shared moment: the **client's** local time, since
   the server runs in UTC in production. The one copy that is kept lives
   inside a saved chat, so resuming that chat continues the same scene.
+- **ASSISTANT**: the person opens an AI assistant app to get a task
+  done. You write the task; a **task story**, generated from the core
+  for the same kind of fixed moment, makes it the person's own problem:
+  where they are, why they have to deal with it right now, what they
+  have at hand (names, numbers, a text they could paste), how they came
+  to use the app for it, and their mood. The task itself is never
+  changed: one that seems odd for this person is kept and given a
+  plausible reason (someone asked them, a course, a relative's problem),
+  and they still know only what the core says. A fixed template sets
+  how people use these apps, and overrides the stranger-chat habits
+  that don't fit: here asking is the point; they type short requests
+  and reveal details as they go; they skim long answers and react to a
+  point or two; they take what works without redoing it; they never
+  write like the assistant; and they close the app, mostly without a
+  goodbye, once they have what they came for or give up. The
+  assistant is the persona's own model behind a plain “You are a
+  helpful assistant.” prompt, with its own history: it only ever sees
+  what the persona typed. Like the assistants people actually use, it
+  can search the web: on OpenRouter it gets OpenRouter's web search
+  tool and decides itself whether, and how many times, to search
+  before answering, citing its sources as links. The search is the
+  model provider's own where it has one (OpenAI, Anthropic, Google,
+  xAI, Perplexity), Exa's otherwise, and costs around a cent per
+  search, plus the tokens of the results the model reads. On your own
+  server it answers from what the model knows. The prompt header and
+  the judge are told the other side is an AI assistant app, not a
+  stranger.
 
 ### How the result is measured
 
@@ -423,6 +450,8 @@ model](#a-local-model-or-any-openai-compatible-server)):
 | Enricher | core and field notes → enriched core | 0.3 |
 | Voice calibrator | stranger chats → a new `HOW YOU TEXT` | 0.3 |
 | Entry-story writer | core and a moment → where, why and in what mood the app gets opened | 0.9 |
+| Task-story writer | core, a task and a moment → why the task is the person's own, right now | 0.9 |
+| Assistant | the persona's message → an answer, behind “You are a helpful assistant.”, searching the web when it decides to (on OpenRouter) | 1.0 |
 | Rubric | a whole conversation → scores, evidence, verdict | 0 |
 
 The portrait is the one exception: an image model of its own draws it
@@ -656,6 +685,13 @@ persona](#creating-a-persona)). From the picker you can also:
   they text each other while you watch. By default the show pauses after
   each turn so you can edit it before it reaches the other one; switch
   to “▶ auto” to let it run uninterrupted.
+- **Watch them use an AI assistant** — write a task for the selected
+  persona (“write a cover letter for a job at a nursery school”) and
+  watch them get it done with an AI assistant (see
+  [Scenarios](#scenarios)). The persona's messages, and the thoughts
+  behind them, are on the right, the assistant's answers on the left.
+  The show runs on its own until the persona closes the app, the limit
+  in `config.yaml` is reached, or you stop watching.
 - **⚙ settings** (top right) — see and change where the model runs
   (OpenRouter, or your own OpenAI-compatible server: see [A local
   model](#a-local-model-or-any-openai-compatible-server)), the model and
@@ -701,6 +737,10 @@ saved chats.
 bot-roulette chat personas/giulia_20260714_212108/giulia.yaml
 bot-roulette chat personas/giulia_20260714_212108/giulia.yaml --debug   # also show <state>/<thoughts>
 bot-roulette chat personas/giulia_20260714_212108/giulia.yaml --no-judge
+
+# watch the persona use an AI assistant to get a task done
+bot-roulette assist personas/giulia_20260714_212108/giulia.yaml --task "write a cover letter for a job at a nursery school"
+bot-roulette assist personas/giulia_20260714_212108/giulia.yaml --task "..." --debug   # also show the task story, <state>/<thoughts>
 ```
 
 `bot-roulette --help` lists every command; `python -m
@@ -737,8 +777,9 @@ model it talks to and hand it in, and you say where personas live.
 ```python
 from loguru import logger
 from bot_roulette import (
-    LLM, ImageModel, Persona, PersonaIdentity, build_random_persona,
-    live_paired_scenario, load_config, load_persona,
+    ASSISTANT_OPENING_NUDGE, LLM, Assistant, ImageModel, Persona, PersonaIdentity,
+    build_random_persona, live_assistant_scenario, live_paired_scenario,
+    load_config, load_persona,
 )
 
 logger.enable("bot_roulette")   # optional: the library is quiet by default
@@ -753,6 +794,20 @@ scene = live_paired_scenario(llm, load_persona(config).core)
 monica = Persona(llm, config, scenario_text=scene)
 answer = monica("ciao! come va?")
 print(answer.reply, answer.state, answer.thoughts, sep="\n")
+
+# Watch her use an AI assistant (the same model) to get a task done.
+task = "write a cover letter for a job at a nursery school"
+scene = live_assistant_scenario(llm, load_persona(config).core, task)
+monica = Persona(llm, config, scenario="ASSISTANT", scenario_text=scene)
+assistant = Assistant(llm)
+text = ASSISTANT_OPENING_NUDGE
+for _ in range(15):
+    answer = monica(text)
+    print("Monica:", answer.reply)
+    if answer.left:
+        break
+    text = assistant(answer.reply)
+    print("Assistant:", text)
 
 # Create and develop a new persona inside a personas folder.
 settings = load_config("my_config.yaml")   # creation: + random_personas:, see config.yaml
@@ -773,11 +828,13 @@ for programs that switch models while they run.
 `LLM.openai_compatible(base_url, model, api_key=None)` builds one for a
 server's address; without a key it sends a placeholder, never a key
 from the environment. An `LLM` also says
-how a request asks its server for JSON (`json_format`) and for no
-reasoning (`reasoning_off`): `LLM.openrouter` sets OpenRouter's fields;
+how a request asks its server for JSON (`json_format`), for no
+reasoning (`reasoning_off`) and for web search (`web_search`, only the
+AI assistant asks for it): `LLM.openrouter` sets OpenRouter's fields;
 elsewhere reasoning is left to the server, unless you set the switch
 yours takes, e.g. `llm.reasoning_off = {"chat_template_kwargs":
-{"enable_thinking": False}}` for a Qwen3 model on vLLM or llama.cpp.
+{"enable_thinking": False}}` for a Qwen3 model on vLLM or llama.cpp,
+and there is no web search.
 
 The public API is everything in `bot_roulette.__all__`, plus what each
 area of the library exports (see [Modules](#modules)): e.g.
@@ -821,13 +878,14 @@ src/bot_roulette/
 ├── config.py             settings models and strict loader (creation, random_personas)
 ├── persona/              what a persona is
 │   ├── spec.py             loading persona folders; finding enriched / chat-ready personas
-│   └── scenarios.py        INTERVIEW constant + per-session PAIRED entry-story generator
+│   └── scenarios.py        INTERVIEW constant + per-session PAIRED entry stories and ASSISTANT task stories
 ├── chat/                 talking to a persona
 │   ├── engine.py           Persona: one conversation with one persona
 │   ├── framework.py        hard rules, response style, output format, prompt assembly
 │   ├── parsing.py          the model's <state>/<thoughts>/<reply> output, bubbles, markers
 │   ├── judge.py            fail-open consistency judge (JSON-mode verdict on each reply)
-│   └── conversation.py     two personas texting each other, headless
+│   ├── conversation.py     two personas texting each other, headless
+│   └── assistant.py        the plain AI assistant a persona uses in the ASSISTANT scenario
 ├── creation/             making personas
 │   ├── pipeline.py         develop_persona: looks → interview → enrichment → voice calibration; resume
 │   ├── appearance.py       the persona's looks, asked before the interview, and its portrait
@@ -844,7 +902,7 @@ The apps:
 
 | File | Role |
 |---|---|
-| `cli/bot_roulette_cli/main.py` | The `bot-roulette` command: `chat`, `cv`, `random`, `enrich`, `dataset`, `evaluate` |
+| `cli/bot_roulette_cli/main.py` | The `bot-roulette` command: `chat`, `assist`, `cv`, `random`, `enrich`, `dataset`, `evaluate` |
 | `webapp/bot_roulette_web/server.py` | FastAPI web server: persona picker, chat WebSocket, persona creation jobs, settings endpoints |
 | `webapp/bot_roulette_web/settings.py` | The model, where it runs (OpenRouter or `LLM_BASE_URL`) and its key: read from `.env`, changed live by the ⚙ settings panel, which writes them back |
 | `webapp/bot_roulette_web/chats.py` | Saved chat histories: one JSON per chat, atomic writes, id-addressed only |

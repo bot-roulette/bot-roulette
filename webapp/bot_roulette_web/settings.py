@@ -211,6 +211,6 @@ def save_settings(
             set_key(ENV_PATH, name, value, quote_mode="never")
         os.environ.update(updates)
         if fresh is not None:
-            llm.client, llm.json_format, llm.reasoning_off = (
-                fresh.client, fresh.json_format, fresh.reasoning_off
+            llm.client, llm.json_format, llm.reasoning_off, llm.web_search = (
+                fresh.client, fresh.json_format, fresh.reasoning_off, fresh.web_search
             )

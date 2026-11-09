@@ -119,6 +119,18 @@ def test_openrouter_llm():
     assert llm.resolve_model() == "a/b"
     assert llm.json_format == {"type": "json_object"}
     assert llm.reasoning_off == {"reasoning": {"effort": "none"}}
+    assert llm.web_search == {"tools": [{"type": "openrouter:web_search"}]}
+
+
+def test_web_search_is_asked_the_way_the_server_takes_it(make_llm):
+    llm, fake = make_llm("a", "b", "c")
+    complete(llm, [], web_search=True)
+    llm.web_search = {"tools": [{"type": "openrouter:web_search"}]}
+    complete(llm, [])
+    complete(llm, [], web_search=True, reasoning=False)
+    can_t_search, not_asked, asked = fake.requests
+    assert "extra_body" not in can_t_search and "extra_body" not in not_asked
+    assert asked["extra_body"] == {"tools": [{"type": "openrouter:web_search"}]}
 
 
 def _answering(seen, **choice):

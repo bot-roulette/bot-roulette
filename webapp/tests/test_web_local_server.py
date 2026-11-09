@@ -115,6 +115,7 @@ def test_the_panel_moves_the_model_between_servers(local_web):
     assert str(llm.client.base_url) == "https://openrouter.ai/api/v1/"
     assert llm.json_format == {"type": "json_object"}
     assert llm.reasoning_off == {"reasoning": {"effort": "none"}}
+    assert llm.web_search == {"tools": [{"type": "openrouter:web_search"}]}
     r = client.get("/settings/models", params={"server": ""})
     assert [m["id"] for m in r.json()["models"]] == [m["id"] for m in local_web.catalog]
 
@@ -125,5 +126,6 @@ def test_the_panel_moves_the_model_between_servers(local_web):
     llm.client._refresh_api_key()
     assert str(llm.client.base_url) == local + "/"
     assert llm.json_format["type"] == "json_schema" and llm.reasoning_off == {}
+    assert llm.web_search == {}
     sent = [str(auth) for _, auth in fake.server_auth]
     assert not any(local_web.good_key in auth or "sk-from-the-os" in auth for auth in sent)

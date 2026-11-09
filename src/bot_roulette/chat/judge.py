@@ -61,10 +61,10 @@ class Verdict(BaseModel):
 
 
 _JUDGE_SYSTEM = """You are a quality gate for a simulated-person chat. A language
-model is playing {name}, a real person texting a stranger. You receive
+model is playing {name}, a real person texting {counterpart}. You receive
 {name}'s profile, the recent conversation, and a candidate response in
 three parts: state (emotional state), thoughts (inner monologue) and
-reply (the only part the stranger sees).
+reply (the only part the other side sees).
 
 Your ONLY job is to catch responses that would EXPOSE the simulation.
 You are NOT reviewing quality. The persona is SUPPOSED to be unhelpful,
@@ -118,6 +118,11 @@ FAIL the response ONLY if it clearly and unambiguously does one of:
    in-character the content is. A few borrowed words or short
    code-switched phrases inside otherwise-native thoughts are FINE.
 
+Text the persona pastes or quotes from elsewhere (a message they got,
+an ad, a letter, the other side's own words) is not their writing: its
+structure, knowledge and language never count against them. Producing
+a text, a translation included, is not pasting.
+
 If none of these apply beyond reasonable doubt, PASS. When uncertain,
 PASS. A borderline case is a PASS. You should pass the overwhelming
 majority of responses.
@@ -131,7 +136,7 @@ or
 _JUDGE_USER = """=== {name}'S PROFILE ===
 {core}
 
-=== RECENT CONVERSATION (oldest first; 'them' is the stranger) ===
+=== RECENT CONVERSATION (oldest first; 'them' is {counterpart}) ===
 {history}
 
 === CANDIDATE RESPONSE (not yet sent) ===
@@ -208,12 +213,15 @@ def _parse_verdict(raw: str) -> Verdict:
 
 
 class Judge:
-    """Fail-open consistency judge. One instance per persona/session."""
+    """Fail-open consistency judge. One instance per persona/session.
+    ``counterpart`` is who the persona is texting (see
+    framework.counterpart)."""
 
-    def __init__(self, llm: LLM, spec: PersonaSpec):
+    def __init__(self, llm: LLM, spec: PersonaSpec, counterpart: str = "a stranger"):
         self.llm = llm
         self.spec = spec
-        self._system = _JUDGE_SYSTEM.format(name=spec.name)
+        self.counterpart = counterpart
+        self._system = _JUDGE_SYSTEM.format(name=spec.name, counterpart=counterpart)
 
     def __call__(
         self,
@@ -233,6 +241,7 @@ class Judge:
             # promises never to do.
             user = _JUDGE_USER.format(
                 name=self.spec.name,
+                counterpart=self.counterpart,
                 core=self.spec.core,
                 history=_format_history(history, self.spec.name),
                 state=state or "(empty)",

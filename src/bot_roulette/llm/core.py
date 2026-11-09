@@ -85,6 +85,10 @@ class LLM:
     any object (the older "json_object" mode is rejected by some, LM
     Studio for one), and nothing for reasoning, which most servers only
     switch off on the server itself. ``LLM.openrouter`` sets OpenRouter's.
+    ``web_search`` is what a request carries to let the model search the
+    web when it decides to (``complete(web_search=True)``): nothing by
+    default, since most servers can't; ``LLM.openrouter`` sets
+    OpenRouter's web search tool.
     """
 
     client: OpenAI
@@ -94,6 +98,7 @@ class LLM:
         "json_schema": {"name": "answer", "schema": {"type": "object"}},
     })
     reasoning_off: dict = field(default_factory=dict)
+    web_search: dict = field(default_factory=dict)
 
     @classmethod
     def openrouter(
@@ -105,6 +110,8 @@ class LLM:
             model,
             json_format={"type": "json_object"},
             reasoning_off={"reasoning": {"effort": "none"}},
+            # A server tool: OpenRouter runs the searches the model asks for.
+            web_search={"tools": [{"type": "openrouter:web_search"}]},
         )
 
     @classmethod
@@ -139,15 +146,18 @@ def complete(
     *,
     as_json: bool = False,
     reasoning: bool = True,
+    web_search: bool = False,
     extra_body: dict | None = None,
     attempts: int = 1,
 ) -> str:
     """One chat completion. No max_tokens limit; raises UnusableOutput on
     empty, truncated or failed output.
 
-    ``as_json`` asks for a JSON object and ``reasoning=False`` for no
-    reasoning, each the way this LLM's server understands it (see LLM).
-    ``extra_body`` adds any other fields to the request.
+    ``as_json`` asks for a JSON object, ``reasoning=False`` for no
+    reasoning and ``web_search`` lets the model search the web, each the
+    way this LLM's server understands it (see LLM; a server that can't
+    search gets nothing). ``extra_body`` adds any other fields to the
+    request.
 
     ``message.reasoning`` is NEVER used as the answer. When a reasoning
     model leaves ``content`` empty it usually never reached an answer at
@@ -174,7 +184,11 @@ def complete(
     kwargs: dict = {}
     if as_json:
         kwargs["response_format"] = llm.json_format
-    body = {**(extra_body or {}), **({} if reasoning else llm.reasoning_off)}
+    body = {
+        **(extra_body or {}),
+        **(llm.web_search if web_search else {}),
+        **({} if reasoning else llm.reasoning_off),
+    }
     if body:
         kwargs["extra_body"] = body
     attempts = max(1, attempts)

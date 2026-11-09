@@ -1,6 +1,6 @@
 """Shared, persona-independent scenarios.
 
-Two scenarios exist:
+Three scenarios exist:
 
 - INTERVIEW: fully persona-agnostic, defined here as a constant. Always
   available to every persona via ``DEFAULT_SCENARIOS`` (see
@@ -19,6 +19,11 @@ Two scenarios exist:
   moment at session start fixes both problems. (A saved chat keeps its
   own story so that resuming it continues the same scene: the web app
   stores it with each chat.)
+- ASSISTANT: the person uses an AI assistant app to get a given TASK
+  done. The behavior rules are fixed (``ASSISTANT_TEMPLATE``); the
+  situation that makes the task the person's own is generated per
+  session by ``live_assistant_scenario``, around a fixed moment like
+  PAIRED's entry story, and is never stored either.
 """
 
 from ..llm.core import GENERATION_ATTEMPTS, LLM, complete
@@ -224,6 +229,135 @@ def live_paired_scenario(llm: LLM, core: str, when=None) -> str:
     ``paired_scenario``). Costs one LLM call per persona per session.
     """
     return paired_scenario(generate_entry_story(llm, core, when=when))
+
+
+# --- ASSISTANT: the person uses an AI assistant to get a task done ------
+#
+# Whoever runs the simulation gives the TASK. What makes it this
+# person's own problem (why they have to deal with it right now, what
+# they have at hand, their mood) is the TASK STORY, generated per
+# session around a fixed moment, like PAIRED's entry story. The person
+# lives the task as their own need, never as an assignment. The rules
+# below override the stranger-chat habits of the framework where they
+# don't fit an app: asking is the point here, and closing is the normal
+# way it ends.
+
+ASSISTANT_TEMPLATE = """=== CURRENT SITUATION ===
+{task_story}
+
+=== HOW YOU BEHAVE IN THIS SITUATION ===
+- The other side of this chat is not a person: it's an AI assistant
+  app (like ChatGPT). You opened it because of what's going on above,
+  to get it sorted, not to chat. Here you ask for things outright:
+  that's what it's for.
+- You type the way you'd really type a quick request: short, often
+  incomplete, with your usual typos. You don't explain your whole
+  situation up front; details come out when it asks, or when you
+  realize they matter. If you have a text it needs (a message, a
+  letter, an ad), you can paste it.
+- What you tell it about yourself is your call: whatever the task
+  needs, the way YOU would tell an app.
+- Its answers are long. You skim: you read the start and whatever
+  catches your eye, and you react to that, one or two points, never
+  all of them.
+- You only know what you know. You can't tell whether its answer is
+  right beyond your own knowledge: you trust it, doubt it, or check
+  what you're able to check.
+- When it gives you something you can use, you take it as it is: you
+  don't redo the work yourself. When it misses, you rephrase, insist,
+  add the detail it was missing, or get annoyed.
+- You never write like it does: no lists, headings or bold, no "Great,
+  thanks! Could you also...". You're asking, in your own words.
+- It understands any language.
+- One message at a time: you type into one box and send. [NEXT] only
+  starts a new line in that message.
+- When you're done (you got what you needed, you gave up, or something
+  else came up) you close the app: end your last message with [LEAVE],
+  or send only [LEAVE] without typing anything. That's how these chats
+  end: people just close the app, mostly without a goodbye or a thank
+  you. Don't keep going once you have what you came for.
+"""
+
+
+def assistant_scenario(task_story: str) -> str:
+    return ASSISTANT_TEMPLATE.format(task_story=task_story)
+
+
+TASK_STORY_SYSTEM_PROMPT = """You write the opening frame of a role-play scenario for a simulated
+person. You will receive the person's CORE DESCRIPTION (biography,
+personality, texting style), a fixed MOMENT, and a TASK.
+
+The scenario is fixed: right now this person opens an AI assistant app
+(like ChatGPT) to get the TASK done. Your job is to write ONLY the
+situation that makes the TASK their own problem: why THIS person has to
+deal with it at exactly this moment.
+
+Write 4-5 markdown bullets, second person ("you"), covering:
+1. WHEN and WHERE: the moment is GIVEN (day of week and clock time) and
+   is not negotiable. Where is this person, and what were they just
+   doing? State the day and time explicitly.
+2. WHAT and WHY: what they need, stated plainly, and the concrete
+   circumstance in their life that makes them need it now (a deadline,
+   someone who asked them, a problem that came up, plain curiosity).
+3. WHAT THEY HAVE: the specifics of their case (names, numbers, dates,
+   places) and any short text they would paste (a message, an ad, a
+   letter), quoted in full in the language it would really be in.
+4. WHY THE APP: one line on how they came to use it for this (habit,
+   someone suggested it, nobody else to ask), consistent with how
+   familiar someone like them would plausibly be with these apps.
+5. MOOD: one line, consistent with all of the above.
+
+Rules:
+- The TASK is given and NOT negotiable: never change, shrink, widen or
+  swap it, and never solve it. If it seems an odd task for this person,
+  keep it and find the plausible reason it's theirs (someone asked
+  them, a course, their job, a relative's problem); they still only
+  know what the core says they know.
+- The given day and time are FIXED. Never shift, round, or contradict
+  them. If the hour is awkward for this person, that awkwardness is part
+  of the story.
+- Ground everything in the core: their job, schedule, home, habits,
+  people. The specifics of this task (an office, an amount, a deadline)
+  can be invented; new canon facts about their life (new jobs,
+  relationships, children, moves) cannot.
+- Never write what they will type to the assistant, and give no advice.
+- Concrete and specific, never generic. Keep each bullet to 1-2
+  sentences and a quoted text to a few lines; the whole story stays
+  under ~200 words.
+- Write in English, whatever language the TASK is written in; only a
+  quoted text keeps its own language.
+- Output ONLY the bullets, starting with "- ". No headers, no preamble,
+  no commentary.
+"""
+
+
+def generate_task_story(llm: LLM, core: str, task: str, when=None) -> str:
+    """Generate the situation that makes ``task`` this persona's own
+    problem, for the ASSISTANT scenario. ``when`` (default: now) pins
+    the moment, as for an entry story."""
+    moment = describe_moment(when)
+    return complete(
+        llm,
+        [
+            {"role": "system", "content": TASK_STORY_SYSTEM_PROMPT},
+            {
+                "role": "user",
+                "content": (
+                    f"The moment is: {moment} (fixed, do not change it).\n\n"
+                    f"=== TASK ===\n{task}\n\n"
+                    f"=== CORE DESCRIPTION ===\n{core}"
+                ),
+            },
+        ],
+        temperature=0.9,
+        attempts=GENERATION_ATTEMPTS,
+    )
+
+
+def live_assistant_scenario(llm: LLM, core: str, task: str, when=None) -> str:
+    """The ASSISTANT scenario for one session: ``task`` made this
+    persona's own problem at ``when``. Costs one LLM call."""
+    return assistant_scenario(generate_task_story(llm, core, task, when=when))
 
 
 

@@ -108,7 +108,7 @@
   #preview-main { flex: 1; min-width: 0; }
   #preview-portrait { flex: none; width: min(120px, 30%); aspect-ratio: 3 / 4;
                       object-fit: cover; border-radius: 8px; margin-bottom: 18px; }
-  #preview-actions { margin: 14px 0 18px; display: flex; gap: 8px; align-items: center; }
+  #preview-actions { margin: 14px 0 18px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
   #delete-persona { margin-left: auto; background: transparent; color: #e07070;
                     border: 1px solid #5a3030; }
   #delete-persona:hover { background: #3a1818; }
@@ -166,6 +166,20 @@
     .gen-grid { grid-template-columns: 1fr; }
     #gen-dialog { padding: 16px; }
   }
+  #task-dialog { width: min(560px, calc(100vw - 28px)); margin: auto; padding: 20px 24px;
+                 border: 1px solid #333a48; border-radius: 12px; background: var(--panel);
+                 color: var(--text); }
+  #task-dialog::backdrop { background: rgba(0,0,0,.7); }
+  #task-form { display: block; padding: 0; background: none; }
+  #task-form h1 { font-size: 18px; margin-bottom: 8px; }
+  #task-form .task-note { color: var(--dim); font-size: 13px; margin-bottom: 12px; }
+  #task-text { display: block; width: 100%; min-height: 110px; resize: vertical;
+               background: var(--bg); color: var(--text); border: 1px solid #333a48;
+               border-radius: 8px; padding: 10px 12px; font: inherit; font-size: 14px;
+               outline: none; }
+  #task-text:focus { border-color: var(--me); }
+  #task-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+  #task-cancel { background: var(--them); }
   #chat-list { margin: 14px 0; }
   #chat-list:empty { display: none; }
   #chat-list .cl-label { color: var(--dim); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 6px; }
@@ -235,7 +249,7 @@
           <img id="preview-portrait" alt="" hidden>
           <div id="preview-main">
             <h1 id="preview-name"></h1>
-            <div id="preview-actions"><button id="start-chat">chat with this person</button><button id="spectate" class="tool">👀 watch two personas chat →</button><button id="delete-persona" title="permanently delete this persona" disabled>🗑 delete</button></div>
+            <div id="preview-actions"><button id="start-chat">chat with this person</button><button id="spectate" class="tool">👀 watch two personas chat →</button><button id="assist" class="tool">🤖 watch them use an AI assistant →</button><button id="delete-persona" title="permanently delete this persona" disabled>🗑 delete</button></div>
             <div id="chat-list"></div>
           </div>
         </div>
@@ -293,6 +307,19 @@
   </form>
 </dialog>
 
+<!-- assistant mode: the task the persona has to get done -->
+<dialog id="task-dialog" aria-labelledby="task-title">
+  <form id="task-form" autocomplete="off">
+    <h1 id="task-title">🤖 what does <span id="task-persona"></span> need to get done?</h1>
+    <p class="task-note">They'll open an AI assistant to sort it out: the same model, with a plain “You are a helpful assistant.” prompt, searching the web when it needs to (on OpenRouter). Why the task is theirs right now is made up from who they are and your local time.</p>
+    <textarea id="task-text" required placeholder="e.g. write a cover letter for a job at a nursery school"></textarea>
+    <div id="task-actions">
+      <button id="task-cancel" type="button">cancel</button>
+      <button type="submit">watch</button>
+    </div>
+  </form>
+</dialog>
+
 <!-- ⚙ settings: where the model runs, the model and its API key -->
 <div id="settings-panel">
   <div id="settings-inner">
@@ -335,7 +362,7 @@
     <h1><span id="core-name"></span><button id="core-close">close</button></h1>
     <div id="core-portraits"></div>
     <div id="core-text"></div>
-    <h2>PAIRED scenario</h2>
+    <h2 id="scenario-title">PAIRED scenario</h2>
     <div id="scenario-text"></div>
   </div>
 </div>
@@ -359,6 +386,7 @@ const coreName = document.getElementById("core-name");
 const coreText = document.getElementById("core-text");
 const corePortraits = document.getElementById("core-portraits");
 const scenarioText = document.getElementById("scenario-text");
+const scenarioTitle = document.getElementById("scenario-title");
 
 const picker = document.getElementById("picker");
 const pickerClose = document.getElementById("picker-close");
@@ -374,6 +402,11 @@ const previewCore = document.getElementById("preview-core");
 const chatList = document.getElementById("chat-list");
 const startChat = document.getElementById("start-chat");
 const spectateBtn = document.getElementById("spectate");
+const assistBtn = document.getElementById("assist");
+const taskDialog = document.getElementById("task-dialog");
+const taskForm = document.getElementById("task-form");
+const taskText = document.getElementById("task-text");
+const taskPersona = document.getElementById("task-persona");
 const stopWatch = document.getElementById("stop-watch");
 const modeToggle = document.getElementById("mode-toggle");
 const deleteBtn = document.getElementById("delete-persona");
@@ -658,8 +691,10 @@ function selectPersona(id) {
   const ready = !!p.chat_ready;
   startChat.disabled = !ready;
   spectateBtn.disabled = !ready;
+  assistBtn.disabled = !ready;
   startChat.title = ready ? "" : "voice calibration has not finished for this persona";
   spectateBtn.title = ready ? "" : "voice calibration has not finished for this persona";
+  assistBtn.title = ready ? "" : "voice calibration has not finished for this persona";
   previewName.textContent = p.name;
   previewCore.textContent = p.core;
   previewPortrait.hidden = !p.portrait;
@@ -756,11 +791,13 @@ function updatePickerMode() {
     spectateBanner.classList.add("open");
     startChat.textContent = "👀 watch them chat";
     spectateBtn.style.display = "none";
+    assistBtn.style.display = "none";
   } else {
     status.textContent = "choose who to chat with";
     spectateBanner.classList.remove("open");
     startChat.textContent = "chat with this person";
     spectateBtn.style.display = "";
+    assistBtn.style.display = "";
   }
   // Mark persona A's card as locked so it's visually distinct from the
   // currently-previewed (selected) card.
@@ -779,6 +816,27 @@ spectateBtn.onclick = () => {
 spectateCancel.onclick = () => {
   spectateFirstId = null;
   updatePickerMode();
+};
+
+// Assistant mode: write the task, then watch the persona use an AI
+// assistant to get it done.
+assistBtn.onclick = () => {
+  const selected = personas.find(p => p.id === selectedId);
+  if (!selected || !selected.chat_ready) return;
+  taskPersona.textContent = selected.name;
+  taskDialog.showModal();
+  taskText.focus();
+};
+
+document.getElementById("task-cancel").onclick = () => taskDialog.close();
+
+taskForm.onsubmit = (e) => {
+  e.preventDefault();
+  const task = taskText.value.trim();
+  if (!task || !selectedId) return;
+  taskDialog.close();
+  picker.classList.remove("open");
+  connect(selectedId, null, null, task);
 };
 
 document.addEventListener("keydown", (e) => {
@@ -1392,7 +1450,7 @@ settingsForm.onsubmit = async (e) => {
 
 // --- chat -------------------------------------------------------------------
 
-function connect(personaId, personaBId, chatId) {
+function connect(personaId, personaBId, chatId, task) {
   chat.innerHTML = "";
   typing.textContent = "";
   statusEl.textContent = "connecting…";
@@ -1407,8 +1465,10 @@ function connect(personaId, personaBId, chatId) {
   chatActive = true;
   lastSpeaker = null;
   const spectating = !!personaBId;
-  stopWatch.style.display = spectating ? "" : "none";
+  const watching = spectating || !!task;
+  stopWatch.style.display = watching ? "" : "none";
   stopWatch.disabled = false;
+  // Only a show between two personas pauses for edits.
   modeToggle.style.display = spectating ? "" : "none";
   autoSpectate = false;      // every show starts in step-by-step mode
   finishEditing = null;
@@ -1419,7 +1479,7 @@ function connect(personaId, personaBId, chatId) {
   replyBar = null;
   replyEditor = null;
   pendingEdits.clear();
-  input.placeholder = spectating ? "you're just watching…" : "say something…";
+  input.placeholder = watching ? "you're just watching…" : "say something…";
 
   const proto = location.protocol === "https:" ? "wss" : "ws";
   ws = new WebSocket(`${proto}://${location.host}/ws`);
@@ -1434,6 +1494,7 @@ function connect(personaId, personaBId, chatId) {
       local_time: localTime,
     };
     if (personaBId) start.persona_b = personaBId;
+    if (task) start.task = task;
     if (chatId) start.chat_id = chatId;
     ws.send(JSON.stringify(start));
     // The server generates this session's entry story before matching.
@@ -1460,6 +1521,10 @@ function connect(personaId, personaBId, chatId) {
         statusEl.textContent = `watching ${msg.name} & ${msg.name_b}`;
         add("sys", `${msg.name} and ${msg.name_b} just got paired — you're watching`);
         add("sys", "they're strangers to each other and don't know you exist");
+      } else if (msg.mode === "assist") {
+        statusEl.textContent = `watching ${msg.name} use an AI assistant`;
+        add("sys", `${msg.name} just opened an AI assistant — you're watching`);
+        add("sys", `the task: ${msg.task}`);
       } else {
         statusEl.textContent = `chatting with ${msg.name}`;
         add("sys", `you're now chatting with ${msg.name}. say hi`);
@@ -1469,6 +1534,7 @@ function connect(personaId, personaBId, chatId) {
     } else if (msg.type === "core") {
       coreName.textContent = msg.name;
       coreText.textContent = msg.text;
+      scenarioTitle.textContent = `${msg.scenario_name || "PAIRED"} scenario`;
       scenarioText.textContent = msg.scenario || "";
       who.disabled = false;
     } else if (msg.type === "typing") {

@@ -314,6 +314,43 @@ def test_a_spectator_edit_is_handed_on_without_leave_or_markers(web, monkeypatch
     assert fake.requests[4]["messages"][-1]["content"] == "ciao\nci sei?"
 
 
+def test_watching_a_persona_use_an_ai_assistant(web, monkeypatch):
+    fake = web.FakeClient(
+        "- a task story",
+        reply("cover letter pls [NEXT] for a nursery"), '{"passed": true}',
+        "Sure! Here's a draft.",
+        reply("[LEAVE]"), '{"passed": true}',
+    )
+    monkeypatch.setattr(web.server, "is_configured", lambda: True)
+    monkeypatch.setattr(web.server.llm, "model", "test-model")
+    monkeypatch.setattr(web.server.llm, "client", fake)
+    with web.client.websocket_connect("/ws") as ws:
+        ws.send_json({"type": "start", "persona": "monica_20260907_060117",
+                      "task": "write a cover letter", "local_time": "2026-10-25T20:00"})
+        messages = []
+        while (msg := ws.receive_json())["type"] != "ended":
+            messages.append(msg)
+    assert msg["reason"] == "Monica closed the assistant"
+    assert [(m["who"], m["text"]) for m in messages if m["type"] == "bubble"] == [
+        ("b", "cover letter pls\nfor a nursery"), ("a", "Sure! Here's a draft."),
+    ]
+    assert "write a cover letter" in fake.requests[0]["messages"][1]["content"]
+    # The assistant: the same model, a plain prompt, only what Monica typed.
+    assistant_call = fake.requests[3]["messages"]
+    assert assistant_call[0]["content"] == "You are a helpful assistant."
+    assert assistant_call[1:] == [{"role": "user", "content": "cover letter pls\nfor a nursery"}]
+    assert {r["model"] for r in fake.requests} == {"test-model"}
+    # On OpenRouter it may search the web; Monica never does.
+    assert fake.requests[3]["extra_body"] == {"tools": [{"type": "openrouter:web_search"}]}
+    assert "extra_body" not in fake.requests[1] and "extra_body" not in fake.requests[4]
+
+
+def test_an_assistant_session_needs_a_task(web):
+    with web.client.websocket_connect("/ws") as ws:
+        ws.send_json({"type": "start", "persona": "monica_20260907_060117", "task": "  "})
+        assert ws.receive_json() == {"type": "ended", "reason": "no task given"}
+
+
 @pytest.mark.parametrize("hours, trusted", [(-36, True), (36, True), (-60, False), (60, False)])
 def test_the_client_clock_is_trusted_within_two_days_either_way(web, hours, trusted):
     from datetime import datetime, timedelta

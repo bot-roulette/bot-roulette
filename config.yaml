@@ -31,7 +31,8 @@ web:
   # model's context and end the chat with an error. 4000 ≈ 1000 tokens.
   message_chars: 4000
 
-  # A spectator show ends after this many replies.
+  # A show you watch (two personas chatting, or a persona using an AI
+  # assistant) ends after this many replies, the assistant's included.
   spectate_turns: 40
 
   # Largest CV PDF accepted for import, in MB.

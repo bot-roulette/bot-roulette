@@ -21,17 +21,21 @@ from loguru import logger
 from pydantic import ValidationError
 
 from bot_roulette import (
+    ASSISTANT_OPENING_NUDGE,
     LLM,
+    Assistant,
     Config,
     ImageModel,
     Persona,
     PersonaIdentity,
+    assistant_scenario,
     build_dataset,
     build_persona_from_cv,
     build_random_persona,
     calibrate_voice,
     evaluate_dataset,
     find_enriched_personas,
+    generate_task_story,
     live_paired_scenario,
     load_config,
     load_persona,
@@ -41,6 +45,9 @@ from bot_roulette import (
 from bot_roulette.chat import DEFAULT_MAX_TURNS
 
 EXIT_COMMANDS = {"/quit", "/exit", "/q"}
+
+# Most messages a persona sends to the AI assistant in one session.
+ASSIST_TURNS = 15
 
 
 class _CliConfig(Config):
@@ -109,6 +116,22 @@ def app_config(home: Path) -> Config:
 # --- chat ------------------------------------------------------------------
 
 
+def _print_inner(name: str, answer) -> None:
+    """--debug: the persona's state and thoughts, and the judge's redrafts."""
+    _print_safely(f'{name}: <state>{answer.state}</state>')
+    _print_safely(f'{name}: <thoughts>{answer.thoughts}</thoughts>')
+    if answer.regenerations:
+        print(
+            f'[judge: {answer.regenerations} draft(s) rejected'
+            + (
+                ''
+                if answer.verdict.passed
+                else f'; final still FAIL: {answer.verdict.violation}'
+            )
+            + ']'
+        )
+
+
 def run_chat(args, home: Path) -> None:
     llm = make_llm()
 
@@ -139,23 +162,51 @@ def run_chat(args, home: Path) -> None:
             break
         answer = persona(user_input)
         if args.debug:
-            print(f'{persona.name}: <state>{answer.state}</state>')
-            print(f'{persona.name}: <thoughts>{answer.thoughts}</thoughts>')
-            if answer.regenerations:
-                print(
-                    f'[judge: {answer.regenerations} draft(s) rejected'
-                    + (
-                        ''
-                        if answer.verdict.passed
-                        else f'; final still FAIL: {answer.verdict.violation}'
-                    )
-                    + ']'
-                )
+            _print_inner(persona.name, answer)
         print(f'{persona.name}: {answer.reply}')
         print()
         if answer.left:
             print(f"--- {persona.name} left the chat ---")
             break
+
+
+def run_assist(args, home: Path) -> None:
+    llm = make_llm()
+
+    # Like a chat's entry story, the situation that makes the task the
+    # persona's own is generated for right now.
+    print("--- setting the scene… ---")
+    story = generate_task_story(llm, load_persona(args.config).core, args.task)
+    persona = Persona(
+        llm,
+        config_path=args.config,
+        scenario="ASSISTANT",
+        scenario_text=assistant_scenario(story),
+        use_judge=not args.no_judge,
+    )
+    # The persona's own model, behind nothing but a plain assistant prompt.
+    assistant = Assistant(llm)
+    if args.debug:
+        _print_safely(story)
+    print(f"--- {persona.name} opens an AI assistant (Ctrl+C to stop) ---\n")
+
+    text = ASSISTANT_OPENING_NUDGE
+    try:
+        for _ in range(args.turns):
+            answer = persona(text)
+            if args.debug:
+                _print_inner(persona.name, answer)
+            if answer.reply:
+                _print_safely(f"{persona.name}: {answer.reply}\n")
+            if answer.left:
+                print(f"--- {persona.name} closed the assistant ---")
+                return
+            text = assistant(answer.reply)
+            _print_safely(f"Assistant: {text}\n")
+    except KeyboardInterrupt:
+        print("\n--- stopped ---")
+        return
+    print(f"--- {args.turns} messages from {persona.name}: stopped here ---")
 
 
 # --- persona creation ------------------------------------------------------
@@ -328,6 +379,41 @@ def build_parser() -> argparse.ArgumentParser:
         "--debug",
         action="store_true",
         help="Also print the persona's <state> and <thoughts>.",
+    )
+    p.add_argument(
+        "--no-judge",
+        action="store_true",
+        help="Disable the consistency judge (faster, cheaper).",
+    )
+
+    p = command(
+        "assist", run_assist,
+        help="Watch a persona use an AI assistant to get a task done.",
+        description="Watch a persona use an AI assistant to get a task done. "
+        "The assistant is the same model with a plain assistant prompt; the "
+        "situation that makes the task the persona's own is made up for "
+        "right now.",
+    )
+    p.add_argument(
+        "config",
+        help="Path to the persona config YAML file (use an ENRICHED persona).",
+    )
+    p.add_argument(
+        "--task",
+        required=True,
+        help='What the persona needs to get done, e.g. "write a cover letter '
+        'for a job at a nursery school".',
+    )
+    p.add_argument(
+        "--turns",
+        type=int,
+        default=ASSIST_TURNS,
+        help=f"Most messages the persona sends (default: {ASSIST_TURNS}).",
+    )
+    p.add_argument(
+        "--debug",
+        action="store_true",
+        help="Also print the task story and the persona's <state> and <thoughts>.",
     )
     p.add_argument(
         "--no-judge",

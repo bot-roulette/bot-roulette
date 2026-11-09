@@ -13,6 +13,14 @@ Design:
   personas chat with EACH OTHER and the user just watches. Bubbles and
   inner monologues carry "who" ("a"/"b") and "name"; the client can
   send {"type": "stop"} at any time to end the show.
+- Assistant mode: if the start message has "task" instead, the persona
+  uses an AI assistant to get that task done while the user watches.
+  The assistant is the same model, with a plain assistant prompt; the
+  situation that makes the task the persona's own is generated for the
+  user's local time. The persona speaks as "b" (one bubble per message,
+  with its inner monologue), the assistant as "a"; the show runs on its
+  own until the persona closes the app, the reply limit is reached, or
+  the client sends {"type": "stop"}.
 - New personas can be created from the picker:
     GET  /personas/generation-options         the background lists (config.yaml)
     POST /personas/generate                   invent a person around a given identity:
@@ -114,7 +122,14 @@ from fastapi import Body, FastAPI, File, HTTPException, Query, Request, Response
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, ConfigDict, Field, PositiveInt, ValidationError
 
-from bot_roulette.chat import LEAVE_RE, Persona, parse_response, split_bubbles
+from bot_roulette.chat import (
+    ASSISTANT_OPENING_NUDGE,
+    LEAVE_RE,
+    Assistant,
+    Persona,
+    parse_response,
+    split_bubbles,
+)
 from bot_roulette.config import Config, load_config
 from bot_roulette.creation import (
     PersonaIdentity,
@@ -136,9 +151,11 @@ from bot_roulette.llm import (
     set_cancel_event,
 )
 from bot_roulette.persona import (
+    assistant_scenario,
     find_chat_ready_personas,
     find_enriched_personas,
     generate_entry_story,
+    generate_task_story,
     load_persona,
     paired_scenario,
 )
@@ -204,8 +221,13 @@ MAX_PDF_BYTES = MAX_PDF_MB * 1024 * 1024
 
 # Spectator mode: two personas talk to each other while the user watches.
 # Each persona reply counts as one turn; the session ends when a persona
-# leaves, the limit is hit, or the spectator stops watching.
+# leaves, the limit is hit, or the spectator stops watching. A persona
+# using the AI assistant has the same limit, the assistant's answers
+# included.
 SPECTATE_MAX_TURNS = CONFIG.web.spectate_turns
+
+# How the AI assistant is named in assistant mode.
+ASSISTANT_NAME = "AI assistant"
 
 # The consistency judge on web replies (chats and spectator mode).
 JUDGE_WEB_CHATS = CONFIG.web.judge
@@ -1040,6 +1062,19 @@ async def chat_session(ws: WebSocket):
         await _spectate(ws, config_path, ready[wanted_b], _session_moment(first))
         return
 
+    if "task" in first:
+        task = str(first.get("task") or "").strip()[:MAX_MESSAGE_CHARS]
+        if not task:
+            await ws.send_json({"type": "ended", "reason": "no task given"})
+            await ws.close()
+            return
+        if not is_configured():
+            await ws.send_json({"type": "ended", "reason": NOT_CONFIGURED})
+            await ws.close()
+            return
+        await _assist(ws, config_path, task, _session_moment(first))
+        return
+
     # Chat memory: the start message may name a saved chat to RESUME.
     # Resuming means: the persona gets a FRESH system prompt (built from
     # the persona's current files and the entry story saved with the
@@ -1534,6 +1569,111 @@ async def _spectate(
         )
     except (WebSocketDisconnect, RuntimeError):
         pass  # spectator left mid-show; sends to a closed socket raise
+    finally:
+        listener.cancel()
+        try:
+            await ws.close()
+        except Exception:
+            pass
+
+
+async def _assist(ws: WebSocket, config_path: Path, task: str, now: datetime) -> None:
+    """Watch a persona use an AI assistant to get ``task`` done.
+
+    The situation that makes the task the persona's own is generated
+    around ``now`` (the user's local time), like a chat's entry story.
+    The assistant runs on the same model as the persona, behind a plain
+    assistant prompt and with its own history: it only ever sees what
+    the persona typed. Unlike spectator mode the show doesn't pause: it
+    runs until the persona closes the app, the reply limit is reached,
+    or the user sends {"type": "stop"} (or leaves).
+    """
+    try:
+        spec = load_persona(config_path)
+        await ws.send_json({"type": "typing"})
+        story = await asyncio.to_thread(generate_task_story, llm, spec.core, task, now)
+        persona = Persona(
+            llm, config_path=config_path, scenario="ASSISTANT",
+            scenario_text=assistant_scenario(story), use_judge=JUDGE_WEB_CHATS,
+        )
+        assistant = Assistant(llm)
+    except Exception:
+        logger.exception("failed to set up the assistant session")
+        await ws.send_json({"type": "ended", "reason": "couldn't set the scene — try again"})
+        await ws.close()
+        return
+
+    name = persona.spec.name
+    await ws.send_json(
+        {"type": "matched", "mode": "assist", "name": name,
+         "name_b": ASSISTANT_NAME, "task": task}
+    )
+    await ws.send_json(
+        {"type": "core", "name": name, "text": persona.spec.core,
+         "scenario": persona.spec.scenarios["ASSISTANT"], "scenario_name": "ASSISTANT"}
+    )
+
+    stopped = asyncio.Event()
+
+    async def listen():
+        try:
+            while True:
+                data = await ws.receive_json()
+                if isinstance(data, dict) and data.get("type") == "stop":
+                    stopped.set()
+                    return
+        except Exception:  # disconnect or bad frame: stop generating
+            stopped.set()
+
+    listener = asyncio.create_task(listen())
+
+    async def take_turn(speaker: str, fn, text: str):
+        """One reply, generated off the event loop; None when the show is
+        over (the user stopped watching, or generation failed)."""
+        if not stopped.is_set():
+            await ws.send_json({"type": "typing", "name": speaker})
+            try:
+                result = await asyncio.to_thread(fn, text)
+            except Exception:
+                logger.exception(f"assistant session: {speaker}'s reply failed")
+                await ws.send_json({"type": "ended", "reason": "something went wrong on our end"})
+                return None
+            if not stopped.is_set():
+                return result
+        await ws.send_json({"type": "ended", "reason": "you stopped watching"})
+        return None
+
+    try:
+        text, replies = ASSISTANT_OPENING_NUDGE, 0
+        while replies < SPECTATE_MAX_TURNS:
+            answer = await take_turn(name, persona, text)
+            if answer is None:
+                return
+            replies += 1
+            await ws.send_json(
+                {"type": "inner", "who": "b", "name": name,
+                 "state": answer.state, "thoughts": answer.thoughts}
+            )
+            # One message per turn: the persona types into a single box.
+            if answer.reply:
+                await ws.send_json(
+                    {"type": "bubble", "who": "b", "name": name, "text": answer.reply}
+                )
+            if answer.left:
+                await ws.send_json({"type": "ended", "reason": f"{name} closed the assistant"})
+                return
+            if replies == SPECTATE_MAX_TURNS:
+                break
+            text = await take_turn(ASSISTANT_NAME, assistant, answer.reply)
+            if text is None:
+                return
+            replies += 1
+            await ws.send_json(
+                {"type": "bubble", "who": "a", "name": ASSISTANT_NAME, "text": text}
+            )
+        await ws.send_json({"type": "ended", "reason": "conversation limit reached"})
+    except (WebSocketDisconnect, RuntimeError):
+        pass  # the user left mid-show; sends to a closed socket raise
     finally:
         listener.cancel()
         try:
