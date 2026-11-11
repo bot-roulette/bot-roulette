@@ -248,18 +248,20 @@ def build_system_prompt(spec: PersonaSpec, scenario: str = "PAIRED") -> str:
         else "having a casual text conversation with someone you don't know well yet"
     )
     with_a_person = scenario not in _APP_SCENARIOS
-    output_format = _OUTPUT_FORMAT.format(
-        other_side=_OTHER_SIDE_A_PERSON if with_a_person else _OTHER_SIDE_AN_APP,
-        example=_EXAMPLE_WITH_A_PERSON if with_a_person else _EXAMPLE_WITH_AN_APP,
-        **fields,
-    )
     parts = [
         _HEADER.format(situation=situation, **fields).strip(),
         spec.core.strip(),
         _hard_rules(with_a_person).format(**fields),
-        *([_RESPONSE_GUIDELINES.strip()] if with_a_person else []),
-        output_format.strip(),
     ]
+    if with_a_person:
+        parts.append(_RESPONSE_GUIDELINES.strip())
+    parts.append(
+        _OUTPUT_FORMAT.format(
+            other_side=_OTHER_SIDE_A_PERSON if with_a_person else _OTHER_SIDE_AN_APP,
+            example=_EXAMPLE_WITH_A_PERSON if with_a_person else _EXAMPLE_WITH_AN_APP,
+            **fields,
+        ).strip()
+    )
     if spec.scenarios and scenario in spec.scenarios:
         parts.append(spec.scenarios[scenario].strip())
     return "\n\n".join(parts)

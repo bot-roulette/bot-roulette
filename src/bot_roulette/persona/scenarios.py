@@ -181,27 +181,32 @@ _WEEKDAYS = [
     "Friday", "Saturday", "Sunday",
 ]
 
-# A task story also gets the month: tasks come with deadlines and
-# appointments, and without it the writer set them in any season (an
-# exam "on Monday 16 June" in November). Still no day of the month: no
-# calendar to compute.
+# Spelled out like _WEEKDAYS: strftime("%B") would follow the locale.
 _MONTHS = [
     "January", "February", "March", "April", "May", "June", "July",
     "August", "September", "October", "November", "December",
 ]
 
 
-def describe_moment(when=None) -> str:
+def describe_moment(when=None, *, month: bool = False) -> str:
     """Render a datetime as the fixed "when" handed to the generator.
 
     A shared moment string is what keeps two personas in a spectated
     conversation on the same clock: both entry stories are generated
     against the SAME value.
+
+    ``month`` adds the month and year, still with no day of the month
+    to compute a calendar from. A task story needs it: tasks come with
+    deadlines and appointments, and without it the writer set them in
+    any season (an exam "on Monday 16 June" in November).
     """
     from datetime import datetime
 
     when = when or datetime.now()
-    return f"{_WEEKDAYS[when.weekday()]}, {when.strftime('%H:%M')}"
+    moment = f"{_WEEKDAYS[when.weekday()]}, {when.strftime('%H:%M')}"
+    if month:
+        moment += f", {_MONTHS[when.month - 1]} {when.year}"
+    return moment
 
 
 def generate_entry_story(llm: LLM, core: str, when=None) -> str:
@@ -372,11 +377,8 @@ Rules:
 def generate_task_story(llm: LLM, core: str, task: str, when=None) -> str:
     """Generate the situation that makes ``task`` this persona's own
     problem, for the ASSISTANT scenario. ``when`` (default: now) pins
-    the moment, as for an entry story, and the month too."""
-    from datetime import datetime
-
-    when = when or datetime.now()
-    moment = f"{describe_moment(when)}, {_MONTHS[when.month - 1]} {when.year}"
+    the moment, as for an entry story, month included."""
+    moment = describe_moment(when, month=True)
     return complete(
         llm,
         [
