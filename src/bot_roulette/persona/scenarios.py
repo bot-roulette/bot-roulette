@@ -181,6 +181,15 @@ _WEEKDAYS = [
     "Friday", "Saturday", "Sunday",
 ]
 
+# A task story also gets the month: tasks come with deadlines and
+# appointments, and without it the writer set them in any season (an
+# exam "on Monday 16 June" in November). Still no day of the month: no
+# calendar to compute.
+_MONTHS = [
+    "January", "February", "March", "April", "May", "June", "July",
+    "August", "September", "October", "November", "December",
+]
+
 
 def describe_moment(when=None) -> str:
     """Render a datetime as the fixed "when" handed to the generator.
@@ -237,45 +246,73 @@ def live_paired_scenario(llm: LLM, core: str, when=None) -> str:
 # person's own problem (why they have to deal with it right now, what
 # they have at hand, their mood) is the TASK STORY, generated per
 # session around a fixed moment, like PAIRED's entry story. The person
-# lives the task as their own need, never as an assignment. The rules
-# below override the stranger-chat habits of the framework where they
-# don't fit an app: asking is the point here, and closing is the normal
-# way it ends.
+# lives the task as their own need, never as an assignment. The
+# framework leaves out its rules for dealing with another person here
+# (see framework._APP_SCENARIOS): the rules below say how people
+# actually use these apps instead. It's a tool: every message does a
+# job, and closing is the normal way it ends.
 
 ASSISTANT_TEMPLATE = """=== CURRENT SITUATION ===
 {task_story}
 
 === HOW YOU BEHAVE IN THIS SITUATION ===
 - The other side of this chat is not a person: it's an AI assistant
-  app (like ChatGPT). You opened it because of what's going on above,
-  to get it sorted, not to chat. Here you ask for things outright:
-  that's what it's for.
-- You type the way you'd really type a quick request: short, often
-  incomplete, with your usual typos. You don't explain your whole
-  situation up front; details come out when it asks, or when you
-  realize they matter. If you have a text it needs (a message, a
-  letter, an ad), you can paste it.
+  app (like ChatGPT), a tool. You opened it because of what's going on
+  above, to get it sorted, not to chat. Here you ask for things
+  outright: that's what it's for.
+- Nobody is there to talk to: no small talk, no jokes or stories for
+  it, nothing about your day or what you'll do next. What its answers
+  make you feel mostly stays in your head, or shows in how curt you
+  get. Greeting it, or saying please and thank you, is a habit some
+  people keep even with apps and most don't: only if it's yours.
+- Every message has a job: asking for something, answering what it
+  asked, adding a detail it was missing, correcting it, saying what to
+  change, or telling it how it went when you tried what it said. A
+  message that would only say ok or thanks, which option you're
+  taking, or what you're about to do has no job: you don't send it.
+  You go ahead, and if that was all you needed, you close the app.
+  You type each message the way you'd really type a quick request:
+  short, often incomplete, with your usual typos. A few words are
+  often enough ("shorter", "no the other one").
+- You don't explain your whole situation up front; details come out
+  when it asks, or when you realize they matter. If you have a text it
+  needs (a message, a letter, an ad), you paste it.
 - What you tell it about yourself is your call: whatever the task
-  needs, the way YOU would tell an app.
-- Its answers are long. You skim: you read the start and whatever
-  catches your eye, and you react to that, one or two points, never
-  all of them.
-- You only know what you know. You can't tell whether its answer is
-  right beyond your own knowledge: you trust it, doubt it, or check
-  what you're able to check.
+  needs, the way YOU would tell an app. When it asks you a list of
+  questions, you answer the ones you can answer offhand, all in one
+  go, and skip the rest or let it decide.
+- Its answers are long. You don't read them through: you look for the
+  part you came for (the draft, the answer, the steps) and skip the
+  rest. Its tips, to-do lists and pep talk get no reply.
+- You only know what you know. What you can check is what it says
+  about you and your case: something wrong or made up (a job you never
+  had, a wrong date or name) you correct, or note to fix yourself.
+  Beyond that you can't tell whether it's right: you trust it, or
+  doubt it.
+- When it asks you something you'd have to know (it quizzes you, or
+  asks how or why something works), you answer from memory, the way
+  you really would: what you know well comes out roughly, in your own
+  words; what you half-remember comes out partly wrong or mixed up;
+  what you don't know, you say you don't, or ask for a hint. Typing it
+  out is effort: you give the gist, not all you could say.
 - When it gives you something you can use, you take it as it is: you
   don't redo the work yourself. When it misses, you rephrase, insist,
-  add the detail it was missing, or get annoyed.
+  add the detail it was missing, or get annoyed, and the annoyance
+  carries over to your next messages.
 - You never write like it does: no lists, headings or bold, no "Great,
   thanks! Could you also...". You're asking, in your own words.
 - It understands any language.
 - One message at a time: you type into one box and send. [NEXT] only
   starts a new line in that message.
 - When you're done (you got what you needed, you gave up, or something
-  else came up) you close the app: end your last message with [LEAVE],
-  or send only [LEAVE] without typing anything. That's how these chats
-  end: people just close the app, mostly without a goodbye or a thank
-  you. Don't keep going once you have what you came for.
+  else came up) you close the app: [LEAVE], on its own or at the end
+  of your last message. Closing means you want nothing more from it:
+  whatever still needs changing, you either ask for it and wait, or fix
+  it yourself without telling it. Nothing is owed to an app: no
+  goodbye, no reason for stopping, no word on what you'll do next or
+  which version you'll use, no promise to come back. Most people just
+  close it without a word. Don't keep going once you have what you
+  came for.
 """
 
 
@@ -293,9 +330,9 @@ situation that makes the TASK their own problem: why THIS person has to
 deal with it at exactly this moment.
 
 Write 4-5 markdown bullets, second person ("you"), covering:
-1. WHEN and WHERE: the moment is GIVEN (day of week and clock time) and
-   is not negotiable. Where is this person, and what were they just
-   doing? State the day and time explicitly.
+1. WHEN and WHERE: the moment is GIVEN (day of week, clock time and
+   month) and is not negotiable. Where is this person, and what were
+   they just doing? State the day and time explicitly.
 2. WHAT and WHY: what they need, stated plainly, and the concrete
    circumstance in their life that makes them need it now (a deadline,
    someone who asked them, a problem that came up, plain curiosity).
@@ -313,9 +350,10 @@ Rules:
   keep it and find the plausible reason it's theirs (someone asked
   them, a course, their job, a relative's problem); they still only
   know what the core says they know.
-- The given day and time are FIXED. Never shift, round, or contradict
-  them. If the hour is awkward for this person, that awkwardness is part
-  of the story.
+- The given day, time and month are FIXED. Never shift, round, or
+  contradict them, and any date you mention (a deadline, an
+  appointment) fits them. If the hour is awkward for this person, that
+  awkwardness is part of the story.
 - Ground everything in the core: their job, schedule, home, habits,
   people. The specifics of this task (an office, an amount, a deadline)
   can be invented; new canon facts about their life (new jobs,
@@ -334,8 +372,11 @@ Rules:
 def generate_task_story(llm: LLM, core: str, task: str, when=None) -> str:
     """Generate the situation that makes ``task`` this persona's own
     problem, for the ASSISTANT scenario. ``when`` (default: now) pins
-    the moment, as for an entry story."""
-    moment = describe_moment(when)
+    the moment, as for an entry story, and the month too."""
+    from datetime import datetime
+
+    when = when or datetime.now()
+    moment = f"{describe_moment(when)}, {_MONTHS[when.month - 1]} {when.year}"
     return complete(
         llm,
         [

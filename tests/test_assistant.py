@@ -14,7 +14,8 @@ def test_the_task_is_made_the_persona_s_own_at_the_given_moment(make_llm):
         llm, "CORE", "write a cover letter", when=datetime(2026, 11, 10, 21, 15)
     )
     prompt = fake.requests[0]["messages"][1]["content"]
-    assert "Tuesday, 21:15" in prompt and "write a cover letter" in prompt and "CORE" in prompt
+    assert "Tuesday, 21:15, November 2026" in prompt
+    assert "write a cover letter" in prompt and "CORE" in prompt
     assert scene.startswith("=== CURRENT SITUATION ===\n- Tuesday, 21:15")
     assert "[LEAVE]" in scene
 
@@ -65,3 +66,18 @@ def test_a_stranger_chat_is_still_with_a_stranger(make_llm, persona_config, repl
         in persona.history[0]["content"]
     )
     assert "a real person texting a stranger" in fake.requests[1]["messages"][0]["content"]
+
+
+def test_with_an_app_the_rules_for_dealing_with_people_are_left_out(make_llm, persona_config):
+    llm, _ = make_llm()
+    prompts = {
+        scenario: Persona(
+            llm, config_path=persona_config, scenario=scenario, scenario_text="SCENE"
+        ).history[0]["content"]
+        for scenario in ("PAIRED", "ASSISTANT")
+    }
+    for person_only in (
+        "tease the other", "=== HOW A REAL PERSON RESPONDS ===", "impression of the other person",
+    ):
+        assert person_only in prompts["PAIRED"] and person_only not in prompts["ASSISTANT"]
+    assert "\n11. LANGUAGES." in prompts["PAIRED"] and "\n5. LANGUAGES." in prompts["ASSISTANT"]

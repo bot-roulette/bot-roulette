@@ -117,6 +117,15 @@ pipeline ever edits. The system prompt is, in order:
 6. the **scenario**: where the person is and why they are texting (see
    [Scenarios](#scenarios)).
 
+When the other side is an app rather than a person (the ASSISTANT
+scenario), everything about dealing with another person is left out:
+the hard rules on oversharing, introducing yourself, mirroring,
+teasing, changing the subject and doing a task you're asked for; all
+of 4; and the output format's running impression of the other person,
+which becomes a running check on the task. Kept, they had the persona
+joke with the assistant, tell it anecdotes and announce its evening
+plans to it. The scenario says how a person uses the app instead.
+
 Developing a persona never overwrites it: enrichment writes a new folder
 whose `parent` names the one it came from. Each persona carries its
 lineage, and the evidence it was built from (interview, field notes,
@@ -143,7 +152,8 @@ sweet though, funny to tease them</thoughts>
   from the state rather than from the message alone, and always in the
   persona's native language, whatever language the chat is in. They
   keep a running impression of the other person ("seems nice", "why so
-  many questions?") that colors the tone.
+  many questions?") that colors the tone; with an app, a running check
+  on the task instead (what's usable, what's wrong or still missing).
 - **Reply** is the message actually typed: short and casual, however
   deep the thoughts went.
 
@@ -364,19 +374,29 @@ and none is stored with the persona.
   inside a saved chat, so resuming that chat continues the same scene.
 - **ASSISTANT**: the person opens an AI assistant app to get a task
   done. You write the task; a **task story**, generated from the core
-  for the same kind of fixed moment, makes it the person's own problem:
+  for the same kind of fixed moment (plus its month, so a deadline or
+  the weather fits the season), makes it the person's own problem:
   where they are, why they have to deal with it right now, what they
   have at hand (names, numbers, a text they could paste), how they came
   to use the app for it, and their mood. The task itself is never
   changed: one that seems odd for this person is kept and given a
   plausible reason (someone asked them, a course, a relative's problem),
-  and they still know only what the core says. A fixed template sets
-  how people use these apps, and overrides the stranger-chat habits
-  that don't fit: here asking is the point; they type short requests
-  and reveal details as they go; they skim long answers and react to a
-  point or two; they take what works without redoing it; they never
-  write like the assistant; and they close the app, mostly without a
-  goodbye, once they have what they came for or give up. The
+  and they still know only what the core says. The framework leaves
+  out its rules for dealing with another person (see [What a persona
+  is](#what-a-persona-is)), and a fixed template sets how people
+  actually use these apps: it's a tool, not someone to talk to, so no
+  small talk, jokes or stories for it, and greetings and thanks only
+  for those who have the habit; every message does a job (ask, answer,
+  add a detail, correct, ask for a change, say how it went), typed as
+  a short request, with details coming out as they go, and a message
+  that would only say ok, thanks or what they're about to do is never
+  sent; they answer the questions they can answer offhand and skip the
+  rest; when it quizzes them they answer from memory, with the gaps
+  and mix-ups they really have; in a long answer they look for the
+  part they came for and check what it says about them; they take what
+  works without redoing it; they never write like the assistant; and
+  they close the app once they want nothing more from it, mostly
+  without a word. The
   assistant is the persona's own model behind a plain “You are a
   helpful assistant.” prompt, with its own history: it only ever sees
   what the persona typed. Like the assistants people actually use, it
